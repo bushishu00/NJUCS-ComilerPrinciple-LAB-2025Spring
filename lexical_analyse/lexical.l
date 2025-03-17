@@ -1,8 +1,9 @@
 %{
-#include <stdio.h>
+#include "mynode.h"
+
 %}
 %option yylineno
-ws          [ \t]
+ws          [ \t\r]+
 _letter     [_a-zA-Z]
 digit       [0-9]
 _ld          [_0-9a-zA-Z]
@@ -40,31 +41,60 @@ FLOAT       {normfloat}|{expfloat}
 INT         {dec}|{oct}|{hex}
 %%
 {ws}        { /* do nothing*/ }
-"\n"        { yycol = 1; }
-{IF}        {  }
-
-
+{RELOP}     { yylval.node = create_node(yylineno, "RELOP", yytext); 
+              return RELOP;}
+{SEMI}      { yylval.node = create_node(yylineno, "SEMI", yytext); 
+              return SEMI;}
+{COMMA}     { yylval.node = create_node(yylineno, "COMMA", yytext); 
+              return COMMA;}
+{ASSIGNOP}  { yylval.node = create_node(yylineno, "ASSIGNOP", yytext); 
+              return ASSIGNOP;}
+{PLUS}      { yylval.node = create_node(yylineno, "PLUS", yytext); 
+              return PLUS;}
+{MINUS}     { yylval.node = create_node(yylineno, "MINUS", yytext); 
+              return MINUS;}
+{STAR}      { yylval.node = create_node(yylineno, "STAR", yytext); 
+              return STAR;}
+{DIV}       { yylval.node = create_node(yylineno, "DIV", yytext); 
+              return DIV;}
+{AND}       { yylval.node = create_node(yylineno, "AND", yytext); 
+              return AND;}
+{OR}        { yylval.node = create_node(yylineno, "OR", yytext); 
+              return OR;}
+{DOT}       { yylval.node = create_node(yylineno, "DOT", yytext); 
+              return DOT;}
+{NOT}       { yylval.node = create_node(yylineno, "NOT", yytext); 
+              return NOT;}
+{TYPE}      { yylval.node = create_node(yylineno, "TYPE", yytext); 
+              return TYPE;}
+{LP}        { yylval.node = create_node(yylineno, "LP", yytext); 
+              return LP;}
+{RP}        { yylval.node = create_node(yylineno, "RP", yytext); 
+              return RP;}
+{LB}        { yylval.node = create_node(yylineno, "LB", yytext); 
+              return LB;}
+{RB}        { yylval.node = create_node(yylineno, "RB", yytext); 
+              return RB;}
+{LC}        { yylval.node = create_node(yylineno, "LC", yytext); 
+              return LC;}
+{RC}        { yylval.node = create_node(yylineno, "RC", yytext); 
+              return RC;}
+{STRUCT}    { yylval.node = create_node(yylineno, "STRUCT", yytext); 
+              return STRUCT;}
+{RETURN}    { yylval.node = create_node(yylineno, "RETURN", yytext); 
+              return RETURN;}
+{IF}        { yylval.node = create_node(yylineno, "IF", yytext); 
+              return IF;}
+{ELSE}      { yylval.node = create_node(yylineno, "ELSE", yytext); 
+              return ELSE;}
+{WHILE}     { yylval.node = create_node(yylineno, "WHILE", yytext);
+              return WHILE;}
+{ID}        { yylval.node = create_node(yylineno, "ID", yytext);
+              return ID;}
+{FLOAT}     { yylval.node = create_node(yylineno, "FLOAT", yytext);
+              return FLOAT;}
+{INT}       { yylval.node = create_node(yylineno, "INT", yytext);
+              return INT;}
+.           { printf("Error type A at Line %d: Mysterious characters \'%s\'\n", yylineno, yytext); }
 %%
-
-int main(argc, char** argv){
-    if (argc < 2) {/*only read stdin*/
-    /*add my code here*/
-    }
-    for (int i = 1; i < arc; i++){
-        FILE *f = fopen(argv[i]. "r");
-        yylineno = 1;/*reset the yylineno because it is global*/
-        if (!f){/*NULL*/
-            perror(argc[i]);
-            return 1;
-        }
-        yyrestart(f);
-        /*Add your code here*/
-        yylex();
-        
-        fclose(f);
-
-        
-    }
-    /*add my code here*/
-    return 0;
-}
+/* main function is implemented in main.c */
