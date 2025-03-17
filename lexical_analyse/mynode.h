@@ -7,6 +7,8 @@
 #include <string.h>
 
 #define MAX_CHILDREN_NUM 7
+#define MAX_OCT_BITWIDTH 12
+#define MAX_HEX_BITWIDTH 10
 
 typedef struct node {
     int lineno;                             /* the line num of this node*/

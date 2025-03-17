@@ -45,11 +45,38 @@ void print_tree(Node* root, int level){/* root is the parent node, level is the 
         /* Attention: only INT, FLOAT and ID need to be print specially */
         if (strcmp(root->name, "INT") == 0){
             /* TODO: how to print oct and hex integer */
+            /* create another 2 patterns to recognize the oct and hex*/
+            if (root->value[0] == 0 && )
             printf("%s: %d\n", root->name, atoi(root->value));
+        }
+        else if (strcmp(root->name, "INT_oct") == 0){
+            printf("%s: ", root->name);
+            for (int i=0; i < MAX_OCT_BITWIDTH; i++){
+                printf("%s", root->value[i]);
+            }
+            printf("\n");
+        }
+        else if (strcmp(root->name, "INT_hex") == 0){
+            printf("%s: ", root->name);
+            for (int i=0; i < MAX_HEX_BITWIDTH; i++){
+                printf("%s", root->value[i]);
+            }
+            printf("\n");
         }
         else if (strcmp(root->name, "FLOAT") == 0){
             /* TODO: how to print expfloat */
             printf("%s: %d\n", root->name, atof(root->value));
+        }
+        else if (strcmp(root->name, "FLOAT_exp") == 0){
+            /* TODO: how to show expfloat properly */
+            printf("%s: ", root->name);
+            for (int i=0; i < 32; i++){
+                printf("%s", root->value[i]);
+            }
+            printf("\n");
+        }
+        else if (strcmp(root->name, "ID") == 0){
+            printf("%s: %s\n", root->name, root->value);
         }
         else if (strcmp(root->name, "ID") == 0){
             printf("%s: %s\n", root->name, root->value);
@@ -59,4 +86,3 @@ void print_tree(Node* root, int level){/* root is the parent node, level is the 
         }
     }
 }
-

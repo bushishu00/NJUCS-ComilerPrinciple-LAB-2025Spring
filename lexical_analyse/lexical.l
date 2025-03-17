@@ -31,14 +31,12 @@ RETURN      return
 IF          if
 ELSE        else
 WHILE       while
-normfloat   {digit}+\.{digit}+
-expfloat    (({digit}*\.{digit}+)|({digit}+\.{digit}*))([eE][+-]?{digit}+)
-dec         0|([1-9]([0-9]{0,9}))
-oct         0([0-7]{1,11})
-hex         0[xX]([0-9a-fA-F]{1,8})
+FLOAT       {digit}+\.{digit}+
+FLOAT_exp   (({digit}*\.{digit}+)|({digit}+\.{digit}*))([eE][+-]?{digit}+)
+INT         0|([1-9]([0-9]{0,9}))
+INT_oct     0([0-7]{1,11})
+INT_hex     0[xX]([0-9a-fA-F]{1,8})
 ID          {_letter}({_ld}{0,31})
-FLOAT       {normfloat}|{expfloat}
-INT         {dec}|{oct}|{hex}
 %%
 {ws}        { /* do nothing*/ }
 {RELOP}     { yylval.node = create_node(yylineno, "RELOP", yytext); 
@@ -93,8 +91,36 @@ INT         {dec}|{oct}|{hex}
               return ID;}
 {FLOAT}     { yylval.node = create_node(yylineno, "FLOAT", yytext);
               return FLOAT;}
+{FLOAT_exp} { yylval.node = create_node(yylineno, "FLOAT_exp", yytext);
+              return FLOAT_exp;}              
 {INT}       { yylval.node = create_node(yylineno, "INT", yytext);
               return INT;}
+{INT_oct}   { yylval.node = create_node(yylineno, "INT_oct", yytext);
+              return INT_oct;}
+{INT_hex}   { yylval.node = create_node(yylineno, "INT_hex", yytext);
+              return INT_hex;}
+"//"        {
+            char c = input();
+            int skipnum = 1;
+            while (c != '\n'){
+                c = input();
+            }
+            printf("\'//\' comment detected, %d characters is skipped", skipnum);
+            }
+"/*"        {
+            char c, last_c = 0;
+            int skipnum = 1;
+            while ((c = input()) != EOF){
+                if (c == '/' && last_c == '*'){
+                    break;
+                }
+                if (c == '\n'){
+                    skipnum++;
+                }
+                last_c = c; 
+            }
+            printf("\'/**/\' comment detected, %d lines is skipped", skipnum);
+            }
 .           { printf("Error type A at Line %d: Mysterious characters \'%s\'\n", yylineno, yytext); }
 %%
 /* main function is implemented in main.c */
