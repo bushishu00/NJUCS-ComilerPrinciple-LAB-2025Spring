@@ -43,7 +43,7 @@ void print_tree(Node* root, int level){/* root is the parent node, level is the 
     if (root->childnum != 0){/* not the leaf node */
         printf("%s (%d)\n", root->name, root->lineno);
         for(int i=0; i<root->childnum; i++){
-            print_tree(root->childnum[i], level+1);
+            print_tree(root->childs[i], level+1);
         }
     }else{/* leaf node, print depends on the node type */
         /* only INT, FLOAT and ID need to be print specially */
@@ -80,7 +80,7 @@ void print_tree(Node* root, int level){/* root is the parent node, level is the 
             printf("%s: %f\n", root->name, atof(root->value));
         }
         else if (strcmp(root->name, "FLOAT_exp") == 0){
-            int val = 0;
+            float val = 0;
             sscanf(root->value, "%f", &val);
             printf("%s: %f\n", "FLOAT", val);
             /*
