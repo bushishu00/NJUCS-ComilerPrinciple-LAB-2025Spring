@@ -14,13 +14,22 @@ Node* create_node(int lineno, char* name, char* value){
     return node;
 }
 
+/* update: syntax need to add multi childs, we use <stdarg.h> to utilize the function*/
 void add_child(Node* parent, Node* child){
-    assert(parent->childnum < MAX_CHILDREN_NUM);/* child array is not overflow */
-    /* connect the parent node and the child node */
+    assert(parent->childnum < MAX_CHILDREN_NUM);
     parent->childs[parent->childnum] = child;
     parent->childnum++;
     child->parent = parent;
-    /* TODO: How lineno change? */
+}
+
+void add_many_childs(Node* parent, int childnum, ...){
+    va_list children;
+    va_start(children, childnum);
+    for(int i = 0; i < childnum; i++){
+        Node* child = va_arg(children, Node*);
+        add_child(parent, child);
+    }
+    va_end(children);
 }
 
 /* print the whole Abstract Tree **PreOrderly** */

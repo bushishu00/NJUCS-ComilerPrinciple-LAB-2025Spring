@@ -1,6 +1,17 @@
 %{
-#include "mynode.h"
+    #include "mynode.h"
+    #include "syntax.tab.h"
 
+    #include <stdio.h>
+    #include <stdlib.h>
+
+    /* record the token position, refer the code in guidance*/
+    int yycolumn = 1; 
+    #define YY_USER_ACTION \ 
+        yylloc.first_line = yylloc.last_line = yylineno; \ 
+        yylloc.first_column = yycolumn; \ 
+        yylloc.last_column = yycolumn + yyleng - 1; \ 
+        yycolumn += yyleng; 
 %}
 %option yylineno
 ws          [ \t\r]+
@@ -92,13 +103,13 @@ ID          {_letter}({_ld}{0,31})
 {FLOAT}     { yylval.node = create_node(yylineno, "FLOAT", yytext);
               return FLOAT;}
 {FLOAT_exp} { yylval.node = create_node(yylineno, "FLOAT_exp", yytext);
-              return FLOAT_exp;}              
+              return FLOAT;}/* recognize as FLOAT */              
 {INT}       { yylval.node = create_node(yylineno, "INT", yytext);
               return INT;}
 {INT_oct}   { yylval.node = create_node(yylineno, "INT_oct", yytext);
-              return INT_oct;}
+              return INT;/* recognize as INT */}
 {INT_hex}   { yylval.node = create_node(yylineno, "INT_hex", yytext);
-              return INT_hex;}
+              return INT;/* recognize as INT */}
 "//"        {
             char c = input();
             int skipnum = 1;
@@ -121,6 +132,7 @@ ID          {_letter}({_ld}{0,31})
             }
             printf("\'/**/\' comment detected, %d lines is skipped", skipnum);
             }
+\n          { yycolumn = 1; }
 .           { printf("Error type A at Line %d: Mysterious characters \'%s\'\n", yylineno, yytext); }
 %%
 /* main function is implemented in main.c */
