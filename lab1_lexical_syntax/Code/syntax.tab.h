@@ -76,22 +76,14 @@ extern int yydebug;
     IF = 282,
     ELSE = 283,
     WHILE = 284,
-    LOWER_THAN_ELSE = 285
+    NEG = 285,
+    LOWER_THAN_ELSE = 286
   };
 #endif
 
 /* Value type.  */
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
-union YYSTYPE
-{
-#line 26 "./syntax.y"
-
-    Node* node;
-
-#line 92 "./syntax.tab.h"
-
-};
-typedef union YYSTYPE YYSTYPE;
+typedef int YYSTYPE;
 # define YYSTYPE_IS_TRIVIAL 1
 # define YYSTYPE_IS_DECLARED 1
 #endif

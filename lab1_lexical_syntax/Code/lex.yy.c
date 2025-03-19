@@ -635,23 +635,32 @@ int yy_flex_debug = 0;
 char *yytext;
 #line 1 "./lexical.l"
 #line 2 "./lexical.l"
-    #include "mynode.h"
+    #include "astnode.h"
+    /* Attention: YYSTYPE has to be defined before include "syntax.tab.h" */
+    #define YYSTYPE Node*
     #include "syntax.tab.h"
 
     #include <stdio.h>
     #include <stdlib.h>
+    
 
     extern int errornum;
     extern int errorline;
     /* record the token position, refer the code in guidance*/
+    /* !!QUESTION!!: what's the meaning of column, they don't even consider the \t and space */
     int yycolumn = 1; 
     #define YY_USER_ACTION \ 
         yylloc.first_line = yylloc.last_line = yylineno; \ 
         yylloc.first_column = yycolumn; \ 
         yylloc.last_column = yycolumn + yyleng - 1; \ 
         yycolumn += yyleng; 
-#line 654 "./lex.yy.c"
-#line 655 "./lex.yy.c"
+
+    Node *create_lexnode(int lineno, char *name, char *value){
+        Node *ret = create_node(LEX_NODE, lineno, name, value, 0);
+        return ret;
+    }
+#line 663 "./lex.yy.c"
+#line 664 "./lex.yy.c"
 
 #define INITIAL 0
 
@@ -868,9 +877,9 @@ YY_DECL
 		}
 
 	{
-#line 58 "./lexical.l"
+#line 67 "./lexical.l"
 
-#line 874 "./lex.yy.c"
+#line 883 "./lex.yy.c"
 
 	while ( /*CONSTCOND*/1 )		/* loops until end-of-file is reached */
 		{
@@ -939,256 +948,256 @@ do_action:	/* This label is used only to access EOF actions. */
 
 case 1:
 YY_RULE_SETUP
-#line 59 "./lexical.l"
+#line 68 "./lexical.l"
 { /* do nothing*/ }      
 	YY_BREAK
 case 2:
 YY_RULE_SETUP
-#line 60 "./lexical.l"
-{ yylval.node = create_node(yylineno, "INT", yytext, LEX_NODE);
+#line 69 "./lexical.l"
+{ yylval = create_lexnode(yylineno, "INT", yytext);
                   return INT;}
 	YY_BREAK
 case 3:
 YY_RULE_SETUP
-#line 62 "./lexical.l"
+#line 71 "./lexical.l"
 {
                     if (errorline != yylineno){
                         errorline = yylineno;
                         errornum++;
                         printf("Error type A at Line %d: Illegal dec number '%s'\n", yylineno, yytext);
-                        yylval.node = create_node(yylineno, "INT", yytext, LEX_NODE);
+                        yylval = create_lexnode(yylineno, "INT", "0");
                         return INT;
                     }
                 }
 	YY_BREAK
 case 4:
 YY_RULE_SETUP
-#line 71 "./lexical.l"
-{ yylval.node = create_node(yylineno, "INT_oct", yytext, LEX_NODE);
+#line 80 "./lexical.l"
+{ yylval = create_lexnode(yylineno, "INT_oct", yytext);
                   return INT;/* recognize as INT */}
 	YY_BREAK
 case 5:
 YY_RULE_SETUP
-#line 73 "./lexical.l"
+#line 82 "./lexical.l"
 {
                     if (errorline != yylineno){
                         errorline = yylineno;
                         errornum++;
                         printf("Error type A at Line %d: Illegal oct number '%s'\n", yylineno, yytext);
-                        yylval.node = create_node(yylineno, "INT", yytext, LEX_NODE);
+                        yylval = create_lexnode(yylineno, "INT", "00");
                         return INT;
                     }
                 }
 	YY_BREAK
 case 6:
 YY_RULE_SETUP
-#line 82 "./lexical.l"
-{ yylval.node = create_node(yylineno, "INT_hex", yytext, LEX_NODE);
+#line 91 "./lexical.l"
+{ yylval = create_lexnode(yylineno, "INT_hex", yytext);
                   return INT;/* recognize as INT */}
 	YY_BREAK
 case 7:
 YY_RULE_SETUP
-#line 84 "./lexical.l"
+#line 93 "./lexical.l"
 {
                     if (errorline != yylineno){
                         errorline = yylineno;
                         errornum++;
                         printf("Error type A at Line %d: Illegal hex number '%s'\n", yylineno, yytext);
-                        yylval.node = create_node(yylineno, "INT", yytext, LEX_NODE);
+                        yylval = create_lexnode(yylineno, "INT", "0x0");
                         return INT;
                     }
                 }
 	YY_BREAK
 case 8:
 YY_RULE_SETUP
-#line 93 "./lexical.l"
-{ yylval.node = create_node(yylineno, "FLOAT", yytext, LEX_NODE);
+#line 102 "./lexical.l"
+{ yylval = create_lexnode(yylineno, "FLOAT", yytext);
                   return FLOAT;}
 	YY_BREAK
 case 9:
 YY_RULE_SETUP
-#line 95 "./lexical.l"
-{ yylval.node = create_node(yylineno, "FLOAT_exp", yytext, LEX_NODE);
+#line 104 "./lexical.l"
+{ yylval = create_lexnode(yylineno, "FLOAT_exp", yytext);
                   return FLOAT;}/* recognize as FLOAT */  
 	YY_BREAK
 case 10:
 YY_RULE_SETUP
-#line 97 "./lexical.l"
+#line 106 "./lexical.l"
 {
                     if (errorline != yylineno){
                         errorline = yylineno;
                         errornum++;
                         printf("Error type A at Line %d: Illegal float number '%s'\n", yylineno, yytext);
-                        yylval.node = create_node(yylineno, "FLOAT", yytext, LEX_NODE);
+                        yylval = create_lexnode(yylineno, "FLOAT", "0.0");
                         return FLOAT;
                     }
                 } 
 	YY_BREAK
 case 11:
 YY_RULE_SETUP
-#line 106 "./lexical.l"
-{ yylval.node = create_node(yylineno, "RELOP", yytext, LEX_NODE); 
+#line 115 "./lexical.l"
+{ yylval = create_lexnode(yylineno, "RELOP", yytext); 
                   return RELOP;}
 	YY_BREAK
 case 12:
 YY_RULE_SETUP
-#line 108 "./lexical.l"
-{ yylval.node = create_node(yylineno, "SEMI", yytext, LEX_NODE); 
+#line 117 "./lexical.l"
+{ yylval = create_lexnode(yylineno, "SEMI", yytext); 
                   return SEMI;}
 	YY_BREAK
 case 13:
 YY_RULE_SETUP
-#line 110 "./lexical.l"
-{ yylval.node = create_node(yylineno, "COMMA", yytext, LEX_NODE); 
+#line 119 "./lexical.l"
+{ yylval = create_lexnode(yylineno, "COMMA", yytext); 
                   return COMMA;}
 	YY_BREAK
 case 14:
 YY_RULE_SETUP
-#line 112 "./lexical.l"
-{ yylval.node = create_node(yylineno, "ASSIGNOP", yytext, LEX_NODE); 
+#line 121 "./lexical.l"
+{ yylval = create_lexnode(yylineno, "ASSIGNOP", yytext); 
                   return ASSIGNOP;}
 	YY_BREAK
 case 15:
 YY_RULE_SETUP
-#line 114 "./lexical.l"
-{ yylval.node = create_node(yylineno, "PLUS", yytext, LEX_NODE); 
+#line 123 "./lexical.l"
+{ yylval = create_lexnode(yylineno, "PLUS", yytext); 
                   return PLUS;}
 	YY_BREAK
 case 16:
 YY_RULE_SETUP
-#line 116 "./lexical.l"
-{ yylval.node = create_node(yylineno, "MINUS", yytext, LEX_NODE); 
+#line 125 "./lexical.l"
+{ yylval = create_lexnode(yylineno, "MINUS", yytext); 
                   return MINUS;}
 	YY_BREAK
 case 17:
 YY_RULE_SETUP
-#line 118 "./lexical.l"
-{ yylval.node = create_node(yylineno, "STAR", yytext, LEX_NODE); 
+#line 127 "./lexical.l"
+{ yylval = create_lexnode(yylineno, "STAR", yytext); 
                   return STAR;}
 	YY_BREAK
 case 18:
 YY_RULE_SETUP
-#line 120 "./lexical.l"
-{ yylval.node = create_node(yylineno, "DIV", yytext, LEX_NODE); 
+#line 129 "./lexical.l"
+{ yylval = create_lexnode(yylineno, "DIV", yytext); 
                   return DIV;}
 	YY_BREAK
 case 19:
 YY_RULE_SETUP
-#line 122 "./lexical.l"
-{ yylval.node = create_node(yylineno, "AND", yytext, LEX_NODE); 
+#line 131 "./lexical.l"
+{ yylval = create_lexnode(yylineno, "AND", yytext); 
                   return AND;}
 	YY_BREAK
 case 20:
 YY_RULE_SETUP
-#line 124 "./lexical.l"
-{ yylval.node = create_node(yylineno, "OR", yytext, LEX_NODE); 
+#line 133 "./lexical.l"
+{ yylval = create_lexnode(yylineno, "OR", yytext); 
                   return OR;}
 	YY_BREAK
 case 21:
 YY_RULE_SETUP
-#line 126 "./lexical.l"
-{ yylval.node = create_node(yylineno, "DOT", yytext, LEX_NODE); 
+#line 135 "./lexical.l"
+{ yylval = create_lexnode(yylineno, "DOT", yytext); 
                   return DOT;}
 	YY_BREAK
 case 22:
 YY_RULE_SETUP
-#line 128 "./lexical.l"
-{ yylval.node = create_node(yylineno, "NOT", yytext, LEX_NODE); 
+#line 137 "./lexical.l"
+{ yylval = create_lexnode(yylineno, "NOT", yytext); 
                   return NOT;}
 	YY_BREAK
 case 23:
 YY_RULE_SETUP
-#line 130 "./lexical.l"
-{ yylval.node = create_node(yylineno, "TYPE", yytext, LEX_NODE); 
+#line 139 "./lexical.l"
+{ yylval = create_lexnode(yylineno, "TYPE", yytext); 
                   return TYPE;}
 	YY_BREAK
 case 24:
 YY_RULE_SETUP
-#line 132 "./lexical.l"
-{ yylval.node = create_node(yylineno, "LP", yytext, LEX_NODE); 
+#line 141 "./lexical.l"
+{ yylval = create_lexnode(yylineno, "LP", yytext); 
                   return LP;}
 	YY_BREAK
 case 25:
 YY_RULE_SETUP
-#line 134 "./lexical.l"
-{ yylval.node = create_node(yylineno, "RP", yytext, LEX_NODE); 
+#line 143 "./lexical.l"
+{ yylval = create_lexnode(yylineno, "RP", yytext); 
                   return RP;}
 	YY_BREAK
 case 26:
 YY_RULE_SETUP
-#line 136 "./lexical.l"
-{ yylval.node = create_node(yylineno, "LB", yytext, LEX_NODE); 
+#line 145 "./lexical.l"
+{ yylval = create_lexnode(yylineno, "LB", yytext); 
                   return LB;}
 	YY_BREAK
 case 27:
 YY_RULE_SETUP
-#line 138 "./lexical.l"
-{ yylval.node = create_node(yylineno, "RB", yytext, LEX_NODE); 
+#line 147 "./lexical.l"
+{ yylval = create_lexnode(yylineno, "RB", yytext); 
                   return RB;}
 	YY_BREAK
 case 28:
 YY_RULE_SETUP
-#line 140 "./lexical.l"
-{ yylval.node = create_node(yylineno, "LC", yytext, LEX_NODE); 
+#line 149 "./lexical.l"
+{ yylval = create_lexnode(yylineno, "LC", yytext); 
                   return LC;}
 	YY_BREAK
 case 29:
 YY_RULE_SETUP
-#line 142 "./lexical.l"
-{ yylval.node = create_node(yylineno, "RC", yytext, LEX_NODE); 
+#line 151 "./lexical.l"
+{ yylval = create_lexnode(yylineno, "RC", yytext); 
                   return RC;}
 	YY_BREAK
 case 30:
 YY_RULE_SETUP
-#line 144 "./lexical.l"
-{ yylval.node = create_node(yylineno, "STRUCT", yytext, LEX_NODE); 
+#line 153 "./lexical.l"
+{ yylval = create_lexnode(yylineno, "STRUCT", yytext); 
                   return STRUCT;}
 	YY_BREAK
 case 31:
 YY_RULE_SETUP
-#line 146 "./lexical.l"
-{ yylval.node = create_node(yylineno, "RETURN", yytext, LEX_NODE); 
+#line 155 "./lexical.l"
+{ yylval = create_lexnode(yylineno, "RETURN", yytext); 
                   return RETURN;}
 	YY_BREAK
 case 32:
 YY_RULE_SETUP
-#line 148 "./lexical.l"
-{ yylval.node = create_node(yylineno, "IF", yytext, LEX_NODE); 
+#line 157 "./lexical.l"
+{ yylval = create_lexnode(yylineno, "IF", yytext); 
                   return IF;}
 	YY_BREAK
 case 33:
 YY_RULE_SETUP
-#line 150 "./lexical.l"
-{ yylval.node = create_node(yylineno, "ELSE", yytext, LEX_NODE); 
+#line 159 "./lexical.l"
+{ yylval = create_lexnode(yylineno, "ELSE", yytext); 
                   return ELSE;}
 	YY_BREAK
 case 34:
 YY_RULE_SETUP
-#line 152 "./lexical.l"
-{ yylval.node = create_node(yylineno, "WHILE", yytext, LEX_NODE);
+#line 161 "./lexical.l"
+{ yylval = create_lexnode(yylineno, "WHILE", yytext);
                   return WHILE;}
 	YY_BREAK
 case 35:
 YY_RULE_SETUP
-#line 154 "./lexical.l"
-{ yylval.node = create_node(yylineno, "ID", yytext, LEX_NODE);
+#line 163 "./lexical.l"
+{ yylval = create_lexnode(yylineno, "ID", yytext);
                   return ID;}   
 	YY_BREAK
 case 36:
 YY_RULE_SETUP
-#line 156 "./lexical.l"
+#line 165 "./lexical.l"
 {   if (errorline != yylineno){
                         errorline = yylineno;
                         errornum++;
                         printf("Error type A at Line %d: Illegal id '%s'\n", yylineno, yytext);
-                        yylval.node = create_node(yylineno, "ID", yytext, LEX_NODE);
+                        yylval = create_lexnode(yylineno, "ID", yytext);
                         return ID;
                     }
                 }  
 	YY_BREAK
 case 37:
 YY_RULE_SETUP
-#line 164 "./lexical.l"
+#line 173 "./lexical.l"
 {
                 char c = input();
                 while (c != '\n'){
@@ -1199,14 +1208,24 @@ YY_RULE_SETUP
 	YY_BREAK
 case 38:
 YY_RULE_SETUP
-#line 171 "./lexical.l"
+#line 180 "./lexical.l"
 {
-                char c, last_c = 0;
-                while ((c = input()) != EOF){
-                    if (c == '/' && last_c == '*'){
-                        break;
+                int firstline = yylineno;
+                char c = input(); 
+                while (c && (c != EOF)){
+                    if (c == '*'){
+                        c = input();
+                        if (c == '/'){
+                            break;
+                        } else{
+                            unput(c);
+                        }
                     }
-                    last_c = c; 
+                    c = input(); 
+                    if ((!c) || (c == EOF)){
+                        errornum++;
+                        printf("Error type A at Line %d: Unmached comment.\n", firstline);    
+                    }
                 }
                 //printf("\'/**/\' comment detected, %d lines is skipped\n", skipnum);
                 }
@@ -1214,12 +1233,12 @@ YY_RULE_SETUP
 case 39:
 /* rule 39 can match eol */
 YY_RULE_SETUP
-#line 181 "./lexical.l"
+#line 200 "./lexical.l"
 { yycolumn = 1; }
 	YY_BREAK
 case 40:
 YY_RULE_SETUP
-#line 182 "./lexical.l"
+#line 201 "./lexical.l"
 { 
                     if (errorline != yylineno){
                         errorline = yylineno;
@@ -1230,10 +1249,10 @@ YY_RULE_SETUP
 	YY_BREAK
 case 41:
 YY_RULE_SETUP
-#line 189 "./lexical.l"
+#line 208 "./lexical.l"
 ECHO;
 	YY_BREAK
-#line 1237 "./lex.yy.c"
+#line 1256 "./lex.yy.c"
 case YY_STATE_EOF(INITIAL):
 	yyterminate();
 
@@ -2250,6 +2269,5 @@ void yyfree (void * ptr )
 
 #define YYTABLES_NAME "yytables"
 
-#line 189 "./lexical.l"
+#line 208 "./lexical.l"
 
-/* main function is implemented in main.c */

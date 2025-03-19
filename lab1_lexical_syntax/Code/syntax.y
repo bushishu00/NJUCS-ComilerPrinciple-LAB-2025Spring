@@ -1,6 +1,6 @@
 %{
     #include "lex.yy.c"
-    #include "mynode.h"
+    #include "astnode.h"
 
     #include <stdio.h>
     #include <stdlib.h>
@@ -9,154 +9,159 @@
     extern Node* root;
     extern int errorline;
     extern int errornum;
-
-    Node* product(char* name, YYLTYPE pos, int cnt, ...){
-        /* Node* create_node(int lineno, char* name, char* value); */
-        Node* nonterminal_node = create_node(pos.first_line, name, name, SYN_NODE);
-        va_list children;
-        va_start(children, cnt);
-        for(int i = 0; i < cnt; i++){
-            Node* child = va_arg(children, Node*);
-            add_child(nonterminal_node, child);
-        }
-        va_end(children);
-        return nonterminal_node;
-    }
+    void yyerror(const char *);
 %}
-%union {
-    Node* node;
-}
-%token <node> INT FLOAT ID SEMI COMMA ASSIGNOP RELOP PLUS MINUS STAR DIV 
-%token <node> AND OR DOT NOT TYPE LP RP LB RB LC RC STRUCT RETURN IF ELSE WHILE
 
-%left OR 
-%left AND 
+%token INT FLOAT ID SEMI COMMA ASSIGNOP RELOP PLUS MINUS STAR DIV AND 
+%token OR DOT NOT TYPE LP RP LB RB LC RC STRUCT RETURN IF ELSE WHILE
+
+%type Program ExtDefList ExtDef ExtDecList
+%type Specifier StructSpecifier OptTag Tag
+%type VarDec FunDec VarList ParamDec
+%type CompSt StmtList Stmt
+%type DefList Def DecList Dec
+%type Exp Args
+
+%right ASSIGNOP
+%left OR
+%left AND
 %left RELOP
-%left PLUS MINUS 
+%left PLUS MINUS
 %left STAR DIV
-%right NOT
-%right ASSIGNOP  
-
-%left DOT LB RB LP RP
-%nonassoc LOWER_THAN_ELSE 
+%right NOT NEG
+%left LP RP LB RB DOT
+%nonassoc LOWER_THAN_ELSE
 %nonassoc ELSE
-%type <node> Program ExtDefList ExtDef ExtDecList Specifier
-%type <node> StructSpecifier OptTag Tag VarDec FunDec VarList
-%type <node> ParamDec CompSt StmtList Stmt DefList Def DecList
-%type <node> Dec Exp Args
 %%
-Program: ExtDefList                             { $$ = product("Program", @$, 1, $1); root = $$; }/* impossible for any error */
+Program: 
+    ExtDefList                                  { $$ = create_node(SYN_NODE, @$.first_line, "Program", "Program", 1, $1); root = $$; }/* impossible for any error */
     ;   
-ExtDefList: /* empty */                         { $$ = product("ExtDefList", @$, 0); }/* no external  */
-    | ExtDef ExtDefList                         { $$ = product("ExtDefList", @$, 2, $1, $2); }/* int a; int b; ... */
+ExtDefList: 
+    ExtDef ExtDefList                           { $$ = create_node(SYN_NODE, @$.first_line, "ExtDefList", "ExtDefList", 2, $1, $2); }/* int a; int b; ... */
+    | /* empty */                               { $$ = NULL; }/* no external  */
     ;   
-ExtDef: Specifier ExtDecList SEMI               { $$ = product("ExtDef", @$, 3, $1, $2, $3); }/* int a,b,c; */
-    | Specifier SEMI                            { $$ = product("ExtDef", @$, 2, $1, $2); }/* int; it's strange but correct anyway */
-    | Specifier FunDec CompSt                   { $$ = product("ExtDef", @$, 3, $1, $2, $3); }/* int main(...) {...} */
-    | error SEMI                                { yyerror("syntax error1"); }/* double x; */
+ExtDef: 
+    Specifier ExtDecList SEMI                   { $$ = create_node(SYN_NODE, @$.first_line, "ExtDef", "ExtDef", 3, $1, $2, $3); }/* int a,b,c; */
+    | Specifier SEMI                            { $$ = create_node(SYN_NODE, @$.first_line, "ExtDef", "ExtDef", 2, $1, $2); }/* int; it's strange but correct anyway */
+    | Specifier FunDec CompSt                   { $$ = create_node(SYN_NODE, @$.first_line, "ExtDef", "ExtDef", 3, $1, $2, $3); }/* int main(...) {...} */
+    //| error SEMI                                { yyerror("syntax error1"); }/* double x; */
     //| Specifier error SEMI                      { yyerror("syntax error2"); }/* int a=; */
-    | error Specifier SEMI                      { yyerror("syntax error3"); }
+    //| error Specifier SEMI                      { yyerror("syntax error3"); }
     //| Specifier ExtDecList error                { yyerror("expected \';\'"); }
     //| Specifier error                           { yyerror("expected \';\'"); }
     ;   
-ExtDecList: VarDec                              { $$ = product("ExtDecList", @$, 1, $1); }/* a */
-    | VarDec COMMA ExtDecList                   { $$ = product("ExtDecList", @$, 3, $1, $2, $3); }/* a,b */
-    | VarDec error ExtDecList                   { yyerror("syntax error4"); }/* a[,b */
+ExtDecList: 
+    VarDec                                      { $$ = create_node(SYN_NODE, @$.first_line, "ExtDecList", "ExtDecList", 1, $1); }/* a */
+    | VarDec COMMA ExtDecList                   { $$ = create_node(SYN_NODE, @$.first_line, "ExtDecList", "ExtDecList", 3, $1, $2, $3); }/* a,b */
+    //| VarDec error ExtDecList                   { yyerror("syntax error4"); }/* a[,b */
     ;           
-Specifier: TYPE                                 { $$ = product("Specifier", @$, 1, $1); }/* int/float */
-    | StructSpecifier                           { $$ = product("Specifier", @$, 1, $1); }/* struct... */
+Specifier: 
+    TYPE                                        { $$ = create_node(SYN_NODE, @$.first_line, "Specifier", "Specifier", 1, $1); }/* int/float */
+    | StructSpecifier                           { $$ = create_node(SYN_NODE, @$.first_line, "Specifier", "Specifier", 1, $1); }/* struct... */
     ;
-StructSpecifier: STRUCT OptTag LC DefList RC    { $$ = product("StructSpecifier", @$, 5, $1, $2, $3, $4, $5); }/* struct {...}  or  struct ID {...} */
-    | STRUCT Tag                                { $$ = product("StructSpecifier", @$, 2, $1, $2); }/* struct ID */
+StructSpecifier: 
+    STRUCT OptTag LC DefList RC                 { $$ = create_node(SYN_NODE, @$.first_line, "StructSpecifier", "StructSpecifier", 5, $1, $2, $3, $4, $5); }/* struct {...}  or  struct ID {...} */
+    | STRUCT Tag                                { $$ = create_node(SYN_NODE, @$.first_line, "StructSpecifier", "StructSpecifier", 2, $1, $2); }/* struct ID */
     ;
-OptTag: /* empty */                             { $$ = product("OptTag", @$, 0); }
-    | ID                                        { $$ = product("OptTag", @$, 1, $1); }/* error ID is handled in lex */
+OptTag: 
+    ID                                          { $$ = create_node(SYN_NODE, @$.first_line, "OptTag", "OptTag", 1, $1); }/* error ID is handled in lex */
+    | /* empty */                               { $$ = NULL; }
     ;
-Tag: ID                                         { $$ = product("Tag", @$, 1, $1); }/* error ID is handled in lex */
+Tag: 
+    ID                                          { $$ = create_node(SYN_NODE, @$.first_line, "Tag", "Tag", 1, $1); }/* error ID is handled in lex */
     ;
-VarDec: ID                                      { $$ = product("VarDec", @$, 1, $1); }/* error ID is handled in lex */
-    | VarDec LB INT RB                          { $$ = product("VarDec", @$, 4, $1, $2, $3, $4); }/* array, e.g. a[123] */
-    | VarDec LB error RB                        { yyerror("syntax error5"); }/* a[a,b] a[3][] */
+
+
+VarDec: 
+    ID                                          { $$ = create_node(SYN_NODE, @$.first_line, "VarDec", "VarDec", 1, $1); }/* error ID is handled in lex */
+    | VarDec LB INT RB                          { $$ = create_node(SYN_NODE, @$.first_line, "VarDec", "VarDec", 4, $1, $2, $3, $4); }/* array, e.g. a[123] */
+    //| VarDec LB error RB                        { yyerror("syntax error5"); }/* a[a,b] a[3][] */
     ;
-FunDec: ID LP VarList RP                        { $$ = product("FunDec", @$, 4, $1, $2, $3, $4); }/* main(int a,...) */
-    | ID LP RP                                  { $$ = product("FunDec", @$, 3, $1, $2, $3); }/* main() */
-    | ID LP error RP                            { yyerror("syntax error6"); }/* main( a ) actually it's a Varlist error*/
-    | error LP VarList RP                       { yyerror("syntax error7"); }
+FunDec: 
+    ID LP VarList RP                            { $$ = create_node(SYN_NODE, @$.first_line, "FunDec", "FunDec", 4, $1, $2, $3, $4); }/* main(int a,...) */
+    | ID LP RP                                  { $$ = create_node(SYN_NODE, @$.first_line, "FunDec", "FunDec", 3, $1, $2, $3); }/* main() */
+    //| ID LP error RP                            { yyerror("syntax error6"); }/* main( a ) actually it's a Varlist error*/
+    //| error LP VarList RP                       { yyerror("syntax error7"); }
     ;
-VarList: ParamDec COMMA VarList                 { $$ = product("VarList", @$, 3, $1, $2, $3); }/* int a, intb, .... */
-    | ParamDec                                  { $$ = product("VarList", @$, 1, $1); }/* int a */
+VarList: 
+    ParamDec COMMA VarList                      { $$ = create_node(SYN_NODE, @$.first_line, "VarList", "VarList", 3, $1, $2, $3); }/* int a, intb, .... */
+    | ParamDec                                  { $$ = create_node(SYN_NODE, @$.first_line, "VarList", "VarList", 1, $1); }/* int a */
     ;
-ParamDec: Specifier VarDec                      { $$ = product("ParamDec", @$, 2, $1, $2); }/* int a */
+ParamDec: 
+    Specifier VarDec                            { $$ = create_node(SYN_NODE, @$.first_line, "ParamDec", "ParamDec", 2, $1, $2); }/* int a */
     ;
-CompSt: LC DefList StmtList RC                  { $$ = product("CompSt", @$, 4, $1, $2, $3, $4); }/* {int a; a = 2;} */
-    //| error RC                                  { yyerror("syntax error"); }
+CompSt: 
+    LC DefList StmtList RC                      { $$ = create_node(SYN_NODE, @$.first_line, "CompSt", "CompSt", 4, $1, $2, $3, $4); }/* {int a; a = 2;} */
+    | error RC                                  { yyerror("syntax error"); }
     ;
-StmtList: /* empty */                           { $$ = product("StmtList", @$, 0); }/*  */
-    | Stmt StmtList                             { $$ = product("StmtList", @$, 2, $1, $2); }/* a = 1; b = 2; ...  */
+StmtList: 
+    Stmt StmtList                               { $$ = create_node(SYN_NODE, @$.first_line, "StmtList", "StmtList", 2, $1, $2); }/* a = 1; b = 2; ...  */
+    | /* empty */                               { $$ = NULL; }/*  */
     ;
-Stmt: Exp SEMI                                  { $$ = product("Stmt", @$, 2, $1, $2); }/*  */
-    | CompSt                                    { $$ = product("Stmt", @$, 1, $1); }/* {...} */
-    | RETURN Exp SEMI                           { $$ = product("Stmt", @$, 3, $1, $2, $3); }/* return x==1; */
-    | IF LP Exp RP Stmt                         { $$ = product("Stmt", @$, 5, $1, $2, $3, $4, $5); }/* if (a==1) ... */
-    | IF LP Exp RP Stmt ELSE Stmt               { $$ = product("Stmt", @$, 7, $1, $2, $3, $4, $5, $6, $7); }/* if (a==1) ... else ... */
-    | WHILE LP Exp RP Stmt                      { $$ = product("Stmt", @$, 5, $1, $2, $3, $4, $5); }/* while(a>1) ... */
-    //| error SEMI                                { yyerror("syntax error8"); }/* a++; */
-    | Exp error SEMI                            { yyerror("syntax error9"); }
-    | RETURN Exp error                          { yyerror("syntax error10"); }/* return a */
-    | RETURN error SEMI                         { yyerror("syntax error11"); }/* return a++; */
+Stmt: 
+    Exp SEMI                                    { $$ = create_node(SYN_NODE, @$.first_line, "Stmt", "Stmt", 2, $1, $2); }/*  */
+    | Exp error                                 { yyerror("syntax error10"); }
+    | CompSt                                    { $$ = create_node(SYN_NODE, @$.first_line, "Stmt", "Stmt", 1, $1); }/* {...} */
+    | RETURN Exp SEMI                           { $$ = create_node(SYN_NODE, @$.first_line, "Stmt", "Stmt", 3, $1, $2, $3); }/* return x==1; */
+    | IF LP Exp RP Stmt %prec LOWER_THAN_ELSE   { $$ = create_node(SYN_NODE, @$.first_line, "Stmt", "Stmt", 5, $1, $2, $3, $4, $5); }/* if (a==1) ... */
+    | IF LP Exp RP Stmt ELSE Stmt               { $$ = create_node(SYN_NODE, @$.first_line, "Stmt", "Stmt", 7, $1, $2, $3, $4, $5, $6, $7); }/* if (a==1) ... else ... */
+    | WHILE LP Exp RP Stmt                      { $$ = create_node(SYN_NODE, @$.first_line, "Stmt", "Stmt", 5, $1, $2, $3, $4, $5); }/* while(a>1) ... */
+    //| Exp error SEMI                            { yyerror("syntax error9"); }
+    //| RETURN Exp error                          { yyerror("syntax error10"); }/* return a */
+    //| RETURN error SEMI                         { yyerror("syntax error11"); }/* return a++; */
+    | error SEMI                                { yyerror("syntax error8"); }/* a++; */    
     ;
-DefList: /* empty */                            { $$ = product("DefList", @$, 0); }/*  */
-    | Def DefList                               { $$ = product("DefList", @$, 2, $1, $2); }/* int a; int b; ... */
+
+
+DefList: 
+    Def DefList                                 { $$ = create_node(SYN_NODE, @$.first_line, "DefList", "DefList", 2, $1, $2); }/* int a; int b; ... */
+    | /* empty */                               { $$ = NULL; }/*  */
     ;
-Def: Specifier DecList SEMI                     { $$ = product("Def", @$, 3, $1, $2, $3); }/* int a; */
-    | Specifier error SEMI                      { yyerror("syntax error12"); }/* */
-    | Specifier DecList error                   { yyerror("syntax error13"); }/*int a int b;  */
+Def: 
+    Specifier DecList SEMI                      { $$ = create_node(SYN_NODE, @$.first_line, "Def", "Def", 3, $1, $2, $3); }/* int a; */
+    | error SEMI                      { yyerror("syntax error12"); }/* */
+    //| Specifier DecList error                   { yyerror("syntax error13"); }/*int a int b;  */
     ;
-DecList: Dec                                    { $$ = product("DecList", @$, 1, $1); }/* a */
-    | Dec COMMA DecList                         { $$ = product("DecList", @$, 3, $1, $2, $3); }/* a,b,c */
+DecList: 
+    Dec                                         { $$ = create_node(SYN_NODE, @$.first_line, "DecList", "DecList", 1, $1); }/* a */
+    | Dec COMMA DecList                         { $$ = create_node(SYN_NODE, @$.first_line, "DecList", "DecList", 3, $1, $2, $3); }/* a,b,c */
     ;
-Dec:  VarDec                                    { $$ = product("Dec", @$, 1, $1); }/* a */
-    | VarDec ASSIGNOP Exp                       { $$ = product("Dec", @$, 3, $1, $2, $3); }/* a = 3>1 */
+Dec:  
+    VarDec                                      { $$ = create_node(SYN_NODE, @$.first_line, "Dec", "Dec", 1, $1); }/* a */
+    | VarDec ASSIGNOP Exp                       { $$ = create_node(SYN_NODE, @$.first_line, "Dec", "Dec", 3, $1, $2, $3); }/* a = 3>1 */
     ;
-Exp:  Exp ASSIGNOP Exp                          { $$ = product("Exp", @$, 3, $1, $2, $3); }/* a+b > c+d */
-    | Exp AND Exp                               { $$ = product("Exp", @$, 3, $1, $2, $3); }/* a+b & c+d */
-    | Exp OR Exp                                { $$ = product("Exp", @$, 3, $1, $2, $3); }/* similarly */
-    | Exp RELOP Exp                             { $$ = product("Exp", @$, 3, $1, $2, $3); }/* similarly */
-    | Exp PLUS Exp                              { $$ = product("Exp", @$, 3, $1, $2, $3); }/* similarly */
-    | Exp MINUS Exp                             { $$ = product("Exp", @$, 3, $1, $2, $3); }/* similarly */
-    | Exp STAR Exp                              { $$ = product("Exp", @$, 3, $1, $2, $3); }/* similarly */
-    | Exp DIV Exp                               { $$ = product("Exp", @$, 3, $1, $2, $3); }/* similarly */
-    | LP Exp RP                                 { $$ = product("Exp", @$, 3, $1, $2, $3); }/* (a+b) */
-    | MINUS Exp %prec NOT                       { $$ = product("Exp", @$, 2, $1, $2); }/* -a + b */
-    | NOT Exp                                   { $$ = product("Exp", @$, 2, $1, $2); }/* !a */
-    | ID LP Args RP                             { $$ = product("Exp", @$, 4, $1, $2, $3, $4); }/* printf("hello") */
-    | ID LP RP                                  { $$ = product("Exp", @$, 3, $1, $2, $3); }/* printf() */
-    | Exp LB Exp RB                             { $$ = product("Exp", @$, 4, $1, $2, $3, $4); }/* a[i] */
-    | Exp DOT ID                                { $$ = product("Exp", @$, 3, $1, $2, $3); }/* node.child.name */
-    | ID                                        { $$ = product("Exp", @$, 1, $1); }/* a */
-    | INT                                       { $$ = product("Exp", @$, 1, $1); }/* 1 */
-    | FLOAT                                     { $$ = product("Exp", @$, 1, $1); }/* 1.0 */
-    | Exp ASSIGNOP error                        { yyerror("syntax error14"); }
-    | Exp AND error                             { yyerror("syntax error15"); }
-    | Exp OR error                              { yyerror("syntax error16"); }
-    | Exp RELOP error                           { yyerror("syntax error17"); }
-    | Exp PLUS error                            { yyerror("syntax error18"); }
-    | Exp MINUS error                           { yyerror("syntax error19"); }
-    | Exp STAR error                            { yyerror("syntax error20"); }
-    | Exp DIV error                             { yyerror("syntax error21"); }
-    | LP error RP                               { yyerror("syntax error22"); }
-    | MINUS error                               { yyerror("syntax error23"); }
-    | NOT error                                 { yyerror("syntax error24"); }
-    | ID LP error RP                            { yyerror("syntax error25"); }
+Exp:  
+    Exp ASSIGNOP Exp                            { $$ = create_node(SYN_NODE, @$.first_line, "Exp", "Exp", 3, $1, $2, $3); }/* a+b > c+d */
+    | Exp AND Exp                               { $$ = create_node(SYN_NODE, @$.first_line, "Exp", "Exp", 3, $1, $2, $3); }/* a+b & c+d */
+    | Exp OR Exp                                { $$ = create_node(SYN_NODE, @$.first_line, "Exp", "Exp", 3, $1, $2, $3); }/* similarly */
+    | Exp RELOP Exp                             { $$ = create_node(SYN_NODE, @$.first_line, "Exp", "Exp", 3, $1, $2, $3); }/* similarly */
+    | Exp PLUS Exp                              { $$ = create_node(SYN_NODE, @$.first_line, "Exp", "Exp", 3, $1, $2, $3); }/* similarly */
+    | Exp MINUS Exp                             { $$ = create_node(SYN_NODE, @$.first_line, "Exp", "Exp", 3, $1, $2, $3); }/* similarly */
+    | Exp STAR Exp                              { $$ = create_node(SYN_NODE, @$.first_line, "Exp", "Exp", 3, $1, $2, $3); }/* similarly */
+    | Exp DIV Exp                               { $$ = create_node(SYN_NODE, @$.first_line, "Exp", "Exp", 3, $1, $2, $3); }/* similarly */
+    | LP Exp RP                                 { $$ = create_node(SYN_NODE, @$.first_line, "Exp", "Exp", 3, $1, $2, $3); }/* (a+b) */
+    | MINUS Exp %prec NEG                       { $$ = create_node(SYN_NODE, @$.first_line, "Exp", "Exp", 2, $1, $2); }/* -a + b */
+    | NOT Exp                                   { $$ = create_node(SYN_NODE, @$.first_line, "Exp", "Exp", 2, $1, $2); }/* !a */
+    | ID LP Args RP                             { $$ = create_node(SYN_NODE, @$.first_line, "Exp", "Exp", 4, $1, $2, $3, $4); }/* printf("hello") */
+    | ID LP RP                                  { $$ = create_node(SYN_NODE, @$.first_line, "Exp", "Exp", 3, $1, $2, $3); }/* printf() */
+    | Exp LB Exp RB                             { $$ = create_node(SYN_NODE, @$.first_line, "Exp", "Exp", 4, $1, $2, $3, $4); }/* a[i] */
     | Exp LB error RB                           { yyerror("syntax error26"); }
-    //| error                                     { yyerror("Expression syntax error.");}
+    | Exp DOT ID                                { $$ = create_node(SYN_NODE, @$.first_line, "Exp", "Exp", 3, $1, $2, $3); }/* node.child.name */
+    | error DOT ID                              { yyerror("syntax error26"); }
+    | ID                                        { $$ = create_node(SYN_NODE, @$.first_line, "Exp", "Exp", 1, $1); }/* a */
+    | INT                                       { $$ = create_node(SYN_NODE, @$.first_line, "Exp", "Exp", 1, $1); }/* 1 */
+    | FLOAT                                     { $$ = create_node(SYN_NODE, @$.first_line, "Exp", "Exp", 1, $1); }/* 1.0 */
     ;
-Args: Exp COMMA Args                            { $$ = product("Args", @$, 3, $1, $2, $3); }/* a+3,root */
-    | Exp                                       { $$ = product("Args", @$, 1, $1); }/* a */
+Args: 
+    Exp COMMA Args                              { $$ = create_node(SYN_NODE, @$.first_line, "Args", "Args", 3, $1, $2, $3); }/* a+3,root */
+    | Exp                                       { $$ = create_node(SYN_NODE, @$.first_line, "Args", "Args", 1, $1); }/* a */
     ;
 %%
 
-int yyerror(char const *msg){
-    errornum ++;
-    printf("Error type B at Line %d: %s\n", yylineno, msg);
+void yyerror(char const *msg){
+    if (errorline != yylineno){
+        errorline = yylineno;
+        errornum ++;
+        printf("Error type B at Line %d: %s\n", yylineno, msg);
+    }
 }

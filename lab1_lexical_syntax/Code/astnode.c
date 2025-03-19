@@ -1,50 +1,44 @@
-#include "mynode.h"
+#include "astnode.h"
 
-Node* create_node(int lineno, char* name, char* value, int nodetype){
-    Node* node = (Node*)malloc(sizeof(Node));/* create a node */
-    assert(node != NULL);
-    node->lineno = lineno;
-    strcpy(node->name, name);
-    strcpy(node->value, value);
-    node->parent = NULL;
-    for(int i; i < MAX_CHILDREN_NUM; i++){
-        node->childs[i] = NULL;
+Node *create_node(int nodetype, int lineno, char *name, char *value, int childnum, ...){
+    Node *ret = (Node*)malloc(sizeof(Node));
+    assert(ret != NULL);
+    ret->lineno = lineno;
+    ret->childnum = childnum;
+    ret->nodetype = nodetype;
+    strcpy(ret->name, name);
+    strcpy(ret->value, value);
+
+    for(int i = 0; i < MAX_CHILDREN_NUM; i++){
+        ret->childs[i] = NULL;
     }
-    node->childnum = 0;
-    node->nodetype = nodetype;
-    return node;
-}
 
-/* update: syntax need to add multi childs, we use <stdarg.h> to utilize the function*/
-void add_child(Node* parent, Node* child){
-    assert(parent->childnum < MAX_CHILDREN_NUM);
-    parent->childs[parent->childnum] = child;
-    parent->childnum++;
-    child->parent = parent;
-}
-
-void add_many_childs(Node* parent, int childnum, ...){
-    va_list children;
+    if (childnum >= 1){/* nonterminal */
+        va_list children;
     va_start(children, childnum);
     for(int i = 0; i < childnum; i++){
-        Node* child = va_arg(children, Node*);
-        add_child(parent, child);
+        Node *child = va_arg(children, Node*);
+        ret->childs[i] = child;
     }
     va_end(children);
+    }
+    
+    return ret;
 }
 
 /* print the whole Abstract Tree **PreOrderly** */
-void print_tree(Node* root, int level){/* root is the parent node, level is the current level of the tree, e.g. root's level is 0*/
-    if (root->nodetype == SYN_NODE && root->childnum == 0){/* product empty */
+void print_tree(Node *root, int depth){/* root is the parent node, depth is the current depth of the tree, e.g. root's depth is 0*/
+    if (root == NULL) {
         return;
     }
-    for (int i=0; i<level; i++){/* use space to seperate each level */
+    
+    for (int i=0; i<depth; i++){/* use space to seperate each depth */
         printf("  ");/* 2 spaces */
     }
     if (root->childnum != 0){/* not the leaf node */
         printf("%s (%d)\n", root->name, root->lineno);
         for(int i=0; i<root->childnum; i++){
-            print_tree(root->childs[i], level+1);
+            print_tree(root->childs[i], depth+1);
         }
     }else{/* leaf node, print depends on the node type */
         /* only TYPE, INT, FLOAT and ID need to be print specially */
