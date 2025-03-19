@@ -12,7 +12,7 @@
 
     Node* product(char* name, YYLTYPE pos, int cnt, ...){
         /* Node* create_node(int lineno, char* name, char* value); */
-        Node* nonterminal_node = create_node(pos.first_line, name, name);
+        Node* nonterminal_node = create_node(pos.first_line, name, name, SYN_NODE);
         va_list children;
         va_start(children, cnt);
         for(int i = 0; i < cnt; i++){
@@ -22,6 +22,13 @@
         va_end(children);
         return nonterminal_node;
     }
+    void syntax_error(char* msg){/* 0:lexcical 1:syntax*/
+    if( errorline != yylineno){
+        errorline = yylineno;
+        errornum++;
+        printf("Error type B at Line %d: %s\n", yylineno, msg);
+    }
+}
 %}
 %union {
     Node* node;
@@ -50,11 +57,14 @@ ExtDefList: /* empty */                         { $$ = product("ExtDefList", @$,
     ;   
 ExtDef: Specifier ExtDecList SEMI               { $$ = product("ExtDef", @$, 3, $1, $2, $3); }
     | Specifier SEMI                            { $$ = product("ExtDef", @$, 2, $1, $2); }
-    | error SEMI                                { if (errorline != yylineno){  }
     | Specifier FunDec CompSt                   { $$ = product("ExtDef", @$, 3, $1, $2, $3); }
+    | error SEMI                                { syntax_error("Syntax error."); }
+    | Specifier error SEMI                      { syntax_error("Syntax error."); }
+    | error Specifier SEMI                      { syntax_error("Syntax error."); }
     ;   
 ExtDecList: VarDec                              { $$ = product("ExtDecList", @$, 1, $1); }
     | VarDec COMMA ExtDecList                   { $$ = product("ExtDecList", @$, 3, $1, $2, $3); }
+    | VarDec error ExtDecList                   { syntax_error("Syntax error."); }
     ;           
 Specifier: TYPE                                 { $$ = product("Specifier", @$, 1, $1); }
     | StructSpecifier                           { $$ = product("Specifier", @$, 1, $1); }
@@ -69,9 +79,12 @@ Tag: ID                                         { $$ = product("Tag", @$, 1, $1)
     ;
 VarDec: ID                                      { $$ = product("VarDec", @$, 1, $1); }
     | VarDec LB INT RB                          { $$ = product("VarDec", @$, 4, $1, $2, $3, $4); }
+    | VarDec LB error RB                        { syntax_error("Syntax error."); }
     ;
 FunDec: ID LP VarList RP                        { $$ = product("FunDec", @$, 4, $1, $2, $3, $4); }
     | ID LP RP                                  { $$ = product("FunDec", @$, 3, $1, $2, $3); }
+    | ID LP error RP                            { syntax_error("Syntax error."); }
+    | error LP VarList RP                       { syntax_error("Syntax error."); }
     ;
 VarList: ParamDec COMMA VarList                 { $$ = product("VarList", @$, 3, $1, $2, $3); }
     | ParamDec                                  { $$ = product("VarList", @$, 1, $1); }
@@ -89,13 +102,17 @@ Stmt: Exp SEMI                                  { $$ = product("Stmt", @$, 2, $1
     | IF LP Exp RP Stmt                         { $$ = product("Stmt", @$, 5, $1, $2, $3, $4, $5); }
     | IF LP Exp RP Stmt ELSE Stmt               { $$ = product("Stmt", @$, 7, $1, $2, $3, $4, $5, $6, $7); }
     | WHILE LP Exp RP Stmt                      { $$ = product("Stmt", @$, 5, $1, $2, $3, $4, $5); }
-    //| error SEMI                              { onError(INV_S"T); }
+    | error SEMI                                { syntax_error("Syntax error."); }
+    | Exp error SEMI                            { syntax_error("Syntax error."); }
+    | RETURN Exp error                          { syntax_error("Syntax error."); }
+    | RETURN error SEMI                         { syntax_error("Syntax error."); }
     ;
 DefList: /* empty */                            { $$ = product("DefList", @$, 0); }
     | Def DefList                               { $$ = product("DefList", @$, 2, $1, $2); }
     ;
 Def: Specifier DecList SEMI                     { $$ = product("Def", @$, 3, $1, $2, $3); }
-    //| error SEMI                              { onError(INV_D"EF); }
+    | Specifier error SEMI                      { syntax_error("Syntax error."); }
+    | Specifier DecList error                   { syntax_error("Syntax error."); }
     ;
 DecList: Dec                                    { $$ = product("DecList", @$, 1, $1); }
     | Dec COMMA DecList                         { $$ = product("DecList", @$, 3, $1, $2, $3); }
@@ -121,6 +138,11 @@ Exp: Exp ASSIGNOP Exp                           { $$ = product("Exp", @$, 3, $1,
     | ID                                        { $$ = product("Exp", @$, 1, $1); }
     | INT                                       { $$ = product("Exp", @$, 1, $1); }
     | FLOAT                                     { $$ = product("Exp", @$, 1, $1); }
+    | LP error RP                               { syntax_error("Syntax error."); }
+    | MINUS error                               { syntax_error("Syntax error."); }
+    | NOT error                                 { syntax_error("Syntax error."); }
+    | ID LP error RP                            { syntax_error("Syntax error."); }
+    | Exp LB error RB                           { syntax_error("Syntax error."); }
     ;
 Args: Exp COMMA Args                            { $$ = product("Args", @$, 3, $1, $2, $3); }
     | Exp                                       { $$ = product("Args", @$, 1, $1); }
@@ -128,5 +150,6 @@ Args: Exp COMMA Args                            { $$ = product("Args", @$, 3, $1
 %%
 
 int yyerror(char const *msg){
-    printf("Error type B at line %d: %s\n", yylineno, msg);
+    return 0;
+    //printf("Error type B at Line %d: %s\n", yylineno, msg);
 }

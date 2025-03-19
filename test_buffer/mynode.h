@@ -10,6 +10,8 @@
 #define MAX_CHILDREN_NUM 8
 #define MAX_OCT_BITWIDTH 12
 #define MAX_HEX_BITWIDTH 10
+#define LEX_NODE 0
+#define SYN_NODE 1
 
 typedef struct node {
     int lineno;                             /* the line num of this node*/
@@ -19,9 +21,10 @@ typedef struct node {
     struct node* parent;                    /* only one parent */
     struct node* childs[MAX_CHILDREN_NUM];  /* possibly many childs, but must be less than MAX_CHILDREN_NUM*/
     int childnum;                           /* the number of childs */
+    int nodetype;
 } Node;
 
-Node* create_node(int lineno, char* name, char* value);
+Node* create_node(int lineno, char* name, char* value, int nodetype);
 
 void add_child(Node* parent, Node* child);
 
