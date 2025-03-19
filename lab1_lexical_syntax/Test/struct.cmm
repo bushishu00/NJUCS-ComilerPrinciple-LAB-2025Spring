@@ -1,0 +1,6 @@
+int main(){
+    struct {
+        int i;
+    };
+    return 0;
+}

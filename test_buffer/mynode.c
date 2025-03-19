@@ -39,7 +39,7 @@ void print_tree(Node* root, int level){/* root is the parent node, level is the 
         return;
     }
     for (int i=0; i<level; i++){/* use space to seperate each level */
-        printf(" ");
+        printf("  ");/* 2 space */
     }
     if (root->childnum != 0){/* not the leaf node */
         printf("%s (%d)\n", root->name, root->lineno);

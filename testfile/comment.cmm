@@ -1,0 +1,6 @@
+int main(){
+    /*this is a comment*/
+    int i = 0;
+    //int c ;
+    return 0;
+}
