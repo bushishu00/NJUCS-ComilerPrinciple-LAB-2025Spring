@@ -37,7 +37,6 @@ OCT_ERROR       0[0-7]*[8-9]+[0-9]*
 INT_hex         0[xX]([0-9a-fA-F]{1,8})
 HEX_ERROR       0[xX][0-9a-fA-F]*[g-zG-Z]+[0-9a-zA-Z]*
 INT             0|([1-9]([0-9]{0,9}))
-DEC_ERROR       [0-9]+[a-wA-Wy-zY-Z]+[0-9a-dA-Df-zF-Z]*|[0-9]+[0-9]+[a-dA-Df-zF-Z]+[0-9]*[0-9a-dA-Df-zF-Z]*
 ID              {_letter}({_ld}{0,31})
 ID_ERROR        {digit}({_letter}|{digit})*
 RELOP           >|<|>=|<=|==|!=
@@ -66,107 +65,98 @@ ELSE            else
 WHILE           while
 %%
 {ws}            { /* do nothing*/ }      
-{INT}           { yylval = create_lexnode(yylineno, "INT", yytext);
+{INT}           { yylval = create_node(LEX_NODE, yylineno, "INT", yytext, 0);
                   return INT;}
-{DEC_ERROR}     {
-                    if (errorline != yylineno){
-                        errorline = yylineno;
-                        errornum++;
-                        printf("Error type A at Line %d: Illegal dec number '%s'\n", yylineno, yytext);
-                        yylval = create_lexnode(yylineno, "INT", "0");
-                        return INT;
-                    }
-                }
-{INT_oct}       { yylval = create_lexnode(yylineno, "INT_oct", yytext);
+{INT_oct}       { yylval = create_node(LEX_NODE, yylineno, "INT_oct", yytext, 0);
                   return INT;/* recognize as INT */}
 {OCT_ERROR}     {
                     if (errorline != yylineno){
                         errorline = yylineno;
                         errornum++;
                         printf("Error type A at Line %d: Illegal oct number '%s'\n", yylineno, yytext);
-                        yylval = create_lexnode(yylineno, "INT", "00");
+                        yylval = create_node(LEX_NODE, yylineno, "INT", "00", 0);
                         return INT;
                     }
                 }
-{INT_hex}       { yylval = create_lexnode(yylineno, "INT_hex", yytext);
+{INT_hex}       { yylval = create_node(LEX_NODE, yylineno, "INT_hex", yytext, 0);
                   return INT;/* recognize as INT */}
 {HEX_ERROR}     {
                     if (errorline != yylineno){
                         errorline = yylineno;
                         errornum++;
                         printf("Error type A at Line %d: Illegal hex number '%s'\n", yylineno, yytext);
-                        yylval = create_lexnode(yylineno, "INT", "0x0");
+                        yylval = create_node(LEX_NODE, yylineno, "INT", "0x0", 0);
                         return INT;
                     }
                 }
-{FLOAT}         { yylval = create_lexnode(yylineno, "FLOAT", yytext);
+{FLOAT}         { yylval = create_node(LEX_NODE, yylineno, "FLOAT", yytext, 0);
                   return FLOAT;}
-{FLOAT_exp}     { yylval = create_lexnode(yylineno, "FLOAT_exp", yytext);
+{FLOAT_exp}     { yylval = create_node(LEX_NODE, yylineno, "FLOAT_exp", yytext, 0);
                   return FLOAT;}/* recognize as FLOAT */  
 {FLOAT_ERROR}   {
                     if (errorline != yylineno){
                         errorline = yylineno;
                         errornum++;
                         printf("Error type A at Line %d: Illegal float number '%s'\n", yylineno, yytext);
-                        yylval = create_lexnode(yylineno, "FLOAT", "0.0");
+                        yylval = create_node(LEX_NODE, yylineno, "FLOAT", "0.0", 0);
                         return FLOAT;
                     }
                 } 
-{RELOP}         { yylval = create_lexnode(yylineno, "RELOP", yytext); 
+{RELOP}         { yylval = create_node(LEX_NODE, yylineno, "RELOP", yytext, 0); 
                   return RELOP;}
-{SEMI}          { yylval = create_lexnode(yylineno, "SEMI", yytext); 
+{SEMI}          { yylval = create_node(LEX_NODE, yylineno, "SEMI", yytext, 0); 
                   return SEMI;}
-{COMMA}         { yylval = create_lexnode(yylineno, "COMMA", yytext); 
+{COMMA}         { yylval = create_node(LEX_NODE, yylineno, "COMMA", yytext, 0); 
                   return COMMA;}
-{ASSIGNOP}      { yylval = create_lexnode(yylineno, "ASSIGNOP", yytext); 
+{ASSIGNOP}      { yylval = create_node(LEX_NODE, yylineno, "ASSIGNOP", yytext, 0); 
                   return ASSIGNOP;}
-{PLUS}          { yylval = create_lexnode(yylineno, "PLUS", yytext); 
+{PLUS}          { yylval = create_node(LEX_NODE, yylineno, "PLUS", yytext, 0); 
                   return PLUS;}
-{MINUS}         { yylval = create_lexnode(yylineno, "MINUS", yytext); 
+{MINUS}         { yylval = create_node(LEX_NODE, yylineno, "MINUS", yytext, 0); 
                   return MINUS;}
-{STAR}          { yylval = create_lexnode(yylineno, "STAR", yytext); 
+{STAR}          { yylval = create_node(LEX_NODE, yylineno, "STAR", yytext, 0); 
                   return STAR;}
-{DIV}           { yylval = create_lexnode(yylineno, "DIV", yytext); 
+{DIV}           { yylval = create_node(LEX_NODE, yylineno, "DIV", yytext, 0); 
                   return DIV;}
-{AND}           { yylval = create_lexnode(yylineno, "AND", yytext); 
+{AND}           { yylval = create_node(LEX_NODE, yylineno, "AND", yytext, 0); 
                   return AND;}
-{OR}            { yylval = create_lexnode(yylineno, "OR", yytext); 
+{OR}            { yylval = create_node(LEX_NODE, yylineno, "OR", yytext, 0); 
                   return OR;}
-{DOT}           { yylval = create_lexnode(yylineno, "DOT", yytext); 
+{DOT}           { yylval = create_node(LEX_NODE, yylineno, "DOT", yytext, 0); 
                   return DOT;}
-{NOT}           { yylval = create_lexnode(yylineno, "NOT", yytext); 
+{NOT}           { yylval = create_node(LEX_NODE, yylineno, "NOT", yytext, 0); 
                   return NOT;}
-{TYPE}          { yylval = create_lexnode(yylineno, "TYPE", yytext); 
+{TYPE}          { yylval = create_node(LEX_NODE, yylineno, "TYPE", yytext, 0); 
                   return TYPE;}
-{LP}            { yylval = create_lexnode(yylineno, "LP", yytext); 
+{LP}            { yylval = create_node(LEX_NODE, yylineno, "LP", yytext, 0); 
                   return LP;}
-{RP}            { yylval = create_lexnode(yylineno, "RP", yytext); 
+{RP}            { yylval = create_node(LEX_NODE, yylineno, "RP", yytext, 0); 
                   return RP;}
-{LB}            { yylval = create_lexnode(yylineno, "LB", yytext); 
+{LB}            { yylval = create_node(LEX_NODE, yylineno, "LB", yytext, 0); 
                   return LB;}
-{RB}            { yylval = create_lexnode(yylineno, "RB", yytext); 
+{RB}            { yylval = create_node(LEX_NODE, yylineno, "RB", yytext, 0); 
                   return RB;}
-{LC}            { yylval = create_lexnode(yylineno, "LC", yytext); 
+{LC}            { yylval = create_node(LEX_NODE, yylineno, "LC", yytext, 0); 
                   return LC;}
-{RC}            { yylval = create_lexnode(yylineno, "RC", yytext); 
+{RC}            { yylval = create_node(LEX_NODE, yylineno, "RC", yytext, 0); 
                   return RC;}
-{STRUCT}        { yylval = create_lexnode(yylineno, "STRUCT", yytext); 
+{STRUCT}        { yylval = create_node(LEX_NODE, yylineno, "STRUCT", yytext, 0); 
                   return STRUCT;}
-{RETURN}        { yylval = create_lexnode(yylineno, "RETURN", yytext); 
+{RETURN}        { yylval = create_node(LEX_NODE, yylineno, "RETURN", yytext, 0); 
                   return RETURN;}
-{IF}            { yylval = create_lexnode(yylineno, "IF", yytext); 
+{IF}            { yylval = create_node(LEX_NODE, yylineno, "IF", yytext, 0); 
                   return IF;}
-{ELSE}          { yylval = create_lexnode(yylineno, "ELSE", yytext); 
+{ELSE}          { yylval = create_node(LEX_NODE, yylineno, "ELSE", yytext, 0); 
                   return ELSE;}
-{WHILE}         { yylval = create_lexnode(yylineno, "WHILE", yytext);
+{WHILE}         { yylval = create_node(LEX_NODE, yylineno, "WHILE", yytext, 0);
                   return WHILE;}
-{ID}            { yylval = create_lexnode(yylineno, "ID", yytext);
+{ID}            { yylval = create_node(LEX_NODE, yylineno, "ID", yytext, 0);
                   return ID;}   
 {ID_ERROR}      {   if (errorline != yylineno){
                         errorline = yylineno;
                         errornum++;
                         printf("Error type A at Line %d: Illegal id '%s'\n", yylineno, yytext);
-                        yylval = create_lexnode(yylineno, "ID", yytext);
+                        yylval = create_node(LEX_NODE, yylineno, "ID", yytext, 0);
                         return ID;
                     }
                 }  

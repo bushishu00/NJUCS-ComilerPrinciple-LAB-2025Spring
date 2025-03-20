@@ -23,8 +23,11 @@ int main(int argc, char** argv){
             perror(argv[i]);
             return 1;
         }
+        /* initialize */
         root = NULL;
         yylineno = 1;
+        errornum = 0;
+        errorline = 0;
         yyrestart(f);
         yyparse();
         fclose(f);
@@ -32,7 +35,7 @@ int main(int argc, char** argv){
             print_tree(root, 0);
         }
         /* finish a file */
-        printf("Parse done!\n\n");
+        //printf("Parse done!\n\n");
     }
     return 0;
 }

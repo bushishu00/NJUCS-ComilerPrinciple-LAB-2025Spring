@@ -1,9 +1,0 @@
-int main(){
-    int i = 0;
-    if (i) {
-        float b = 1.5;
-    }else {
-        ;
-    }
-    return 0;
-}

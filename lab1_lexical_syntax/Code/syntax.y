@@ -44,16 +44,16 @@ ExtDef:
     Specifier ExtDecList SEMI                   { $$ = create_node(SYN_NODE, @$.first_line, "ExtDef", "ExtDef", 3, $1, $2, $3); }/* int a,b,c; */
     | Specifier SEMI                            { $$ = create_node(SYN_NODE, @$.first_line, "ExtDef", "ExtDef", 2, $1, $2); }/* int; it's strange but correct anyway */
     | Specifier FunDec CompSt                   { $$ = create_node(SYN_NODE, @$.first_line, "ExtDef", "ExtDef", 3, $1, $2, $3); }/* int main(...) {...} */
-    //| error SEMI                                { yyerror("syntax error1"); }/* double x; */
-    //| Specifier error SEMI                      { yyerror("syntax error2"); }/* int a=; */
-    //| error Specifier SEMI                      { yyerror("syntax error3"); }
+    //| error SEMI                                { errornum++; }/* double x; */
+    | Specifier error SEMI                      { errornum++; }/* int a=; */
+    //| error Specifier SEMI                      { errornum++; }
     //| Specifier ExtDecList error                { yyerror("expected \';\'"); }
     //| Specifier error                           { yyerror("expected \';\'"); }
     ;   
 ExtDecList: 
     VarDec                                      { $$ = create_node(SYN_NODE, @$.first_line, "ExtDecList", "ExtDecList", 1, $1); }/* a */
     | VarDec COMMA ExtDecList                   { $$ = create_node(SYN_NODE, @$.first_line, "ExtDecList", "ExtDecList", 3, $1, $2, $3); }/* a,b */
-    //| VarDec error ExtDecList                   { yyerror("syntax error4"); }/* a[,b */
+    //| VarDec error ExtDecList                   { errornum++; }/* a[,b */
     ;           
 Specifier: 
     TYPE                                        { $$ = create_node(SYN_NODE, @$.first_line, "Specifier", "Specifier", 1, $1); }/* int/float */
@@ -62,6 +62,7 @@ Specifier:
 StructSpecifier: 
     STRUCT OptTag LC DefList RC                 { $$ = create_node(SYN_NODE, @$.first_line, "StructSpecifier", "StructSpecifier", 5, $1, $2, $3, $4, $5); }/* struct {...}  or  struct ID {...} */
     | STRUCT Tag                                { $$ = create_node(SYN_NODE, @$.first_line, "StructSpecifier", "StructSpecifier", 2, $1, $2); }/* struct ID */
+    | error                                     { errornum++; }
     ;
 OptTag: 
     ID                                          { $$ = create_node(SYN_NODE, @$.first_line, "OptTag", "OptTag", 1, $1); }/* error ID is handled in lex */
@@ -75,13 +76,13 @@ Tag:
 VarDec: 
     ID                                          { $$ = create_node(SYN_NODE, @$.first_line, "VarDec", "VarDec", 1, $1); }/* error ID is handled in lex */
     | VarDec LB INT RB                          { $$ = create_node(SYN_NODE, @$.first_line, "VarDec", "VarDec", 4, $1, $2, $3, $4); }/* array, e.g. a[123] */
-    //| VarDec LB error RB                        { yyerror("syntax error5"); }/* a[a,b] a[3][] */
+    //| VarDec LB error RB                        { errornum++; }/* a[a,b] a[3][] */
     ;
 FunDec: 
     ID LP VarList RP                            { $$ = create_node(SYN_NODE, @$.first_line, "FunDec", "FunDec", 4, $1, $2, $3, $4); }/* main(int a,...) */
     | ID LP RP                                  { $$ = create_node(SYN_NODE, @$.first_line, "FunDec", "FunDec", 3, $1, $2, $3); }/* main() */
-    //| ID LP error RP                            { yyerror("syntax error6"); }/* main( a ) actually it's a Varlist error*/
-    //| error LP VarList RP                       { yyerror("syntax error7"); }
+    | ID LP error RP                            { errornum++; }/* main( a ) actually it's a Varlist error*/
+    | error LP VarList RP                       { errornum++; }
     ;
 VarList: 
     ParamDec COMMA VarList                      { $$ = create_node(SYN_NODE, @$.first_line, "VarList", "VarList", 3, $1, $2, $3); }/* int a, intb, .... */
@@ -92,7 +93,7 @@ ParamDec:
     ;
 CompSt: 
     LC DefList StmtList RC                      { $$ = create_node(SYN_NODE, @$.first_line, "CompSt", "CompSt", 4, $1, $2, $3, $4); }/* {int a; a = 2;} */
-    | error RC                                  { yyerror("syntax error"); }
+    | error RC                                  { errornum++; }
     ;
 StmtList: 
     Stmt StmtList                               { $$ = create_node(SYN_NODE, @$.first_line, "StmtList", "StmtList", 2, $1, $2); }/* a = 1; b = 2; ...  */
@@ -100,16 +101,16 @@ StmtList:
     ;
 Stmt: 
     Exp SEMI                                    { $$ = create_node(SYN_NODE, @$.first_line, "Stmt", "Stmt", 2, $1, $2); }/*  */
-    | Exp error                                 { yyerror("syntax error10"); }
+    //| Exp error                                 { errornum++; }
     | CompSt                                    { $$ = create_node(SYN_NODE, @$.first_line, "Stmt", "Stmt", 1, $1); }/* {...} */
     | RETURN Exp SEMI                           { $$ = create_node(SYN_NODE, @$.first_line, "Stmt", "Stmt", 3, $1, $2, $3); }/* return x==1; */
     | IF LP Exp RP Stmt %prec LOWER_THAN_ELSE   { $$ = create_node(SYN_NODE, @$.first_line, "Stmt", "Stmt", 5, $1, $2, $3, $4, $5); }/* if (a==1) ... */
     | IF LP Exp RP Stmt ELSE Stmt               { $$ = create_node(SYN_NODE, @$.first_line, "Stmt", "Stmt", 7, $1, $2, $3, $4, $5, $6, $7); }/* if (a==1) ... else ... */
     | WHILE LP Exp RP Stmt                      { $$ = create_node(SYN_NODE, @$.first_line, "Stmt", "Stmt", 5, $1, $2, $3, $4, $5); }/* while(a>1) ... */
-    //| Exp error SEMI                            { yyerror("syntax error9"); }
-    //| RETURN Exp error                          { yyerror("syntax error10"); }/* return a */
-    //| RETURN error SEMI                         { yyerror("syntax error11"); }/* return a++; */
-    | error SEMI                                { yyerror("syntax error8"); }/* a++; */    
+    //| Exp error SEMI                            { errornum++; }
+    //| RETURN Exp error                          { errornum++; }/* return a */
+    //| RETURN error SEMI                         { errornum++; }/* return a++; */
+    | error SEMI                                { errornum++; }/* a++; */    
     ;
 
 
@@ -119,8 +120,8 @@ DefList:
     ;
 Def: 
     Specifier DecList SEMI                      { $$ = create_node(SYN_NODE, @$.first_line, "Def", "Def", 3, $1, $2, $3); }/* int a; */
-    | error SEMI                      { yyerror("syntax error12"); }/* */
-    //| Specifier DecList error                   { yyerror("syntax error13"); }/*int a int b;  */
+    | Specifier error SEMI                      { errornum++; }/* */
+    //| Specifier DecList error                   { errornum++; }/*int a int b;  */
     ;
 DecList: 
     Dec                                         { $$ = create_node(SYN_NODE, @$.first_line, "DecList", "DecList", 1, $1); }/* a */
@@ -145,12 +146,13 @@ Exp:
     | ID LP Args RP                             { $$ = create_node(SYN_NODE, @$.first_line, "Exp", "Exp", 4, $1, $2, $3, $4); }/* printf("hello") */
     | ID LP RP                                  { $$ = create_node(SYN_NODE, @$.first_line, "Exp", "Exp", 3, $1, $2, $3); }/* printf() */
     | Exp LB Exp RB                             { $$ = create_node(SYN_NODE, @$.first_line, "Exp", "Exp", 4, $1, $2, $3, $4); }/* a[i] */
-    | Exp LB error RB                           { yyerror("syntax error26"); }
+    //| Exp LB error RB                           { errornum++; }
     | Exp DOT ID                                { $$ = create_node(SYN_NODE, @$.first_line, "Exp", "Exp", 3, $1, $2, $3); }/* node.child.name */
-    | error DOT ID                              { yyerror("syntax error26"); }
+    //| error DOT ID                              { errornum++; }
     | ID                                        { $$ = create_node(SYN_NODE, @$.first_line, "Exp", "Exp", 1, $1); }/* a */
     | INT                                       { $$ = create_node(SYN_NODE, @$.first_line, "Exp", "Exp", 1, $1); }/* 1 */
     | FLOAT                                     { $$ = create_node(SYN_NODE, @$.first_line, "Exp", "Exp", 1, $1); }/* 1.0 */
+    | error                                     { errornum++; }
     ;
 Args: 
     Exp COMMA Args                              { $$ = create_node(SYN_NODE, @$.first_line, "Args", "Args", 3, $1, $2, $3); }/* a+3,root */
@@ -161,7 +163,6 @@ Args:
 void yyerror(char const *msg){
     if (errorline != yylineno){
         errorline = yylineno;
-        errornum ++;
-        printf("Error type B at Line %d: %s\n", yylineno, msg);
+        printf("Error type B at Line %d: %s near %s.\n", yylineno, msg, yytext);
     }
 }
