@@ -1,0 +1,14 @@
+int fundec(int a, float b, int c);  //函数声明
+
+int main()
+{
+    int a = 0;
+    float b;
+    b = a*3;                        //错误运算
+    if (b)                          //float不能参与判断
+        fundec(a, b, 2*b);          //错误运算
+    else
+        fundec(a, b, c);            //c未定义
+
+    return 0;
+}

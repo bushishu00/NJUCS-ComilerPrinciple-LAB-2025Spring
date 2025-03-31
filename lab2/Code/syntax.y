@@ -167,3 +167,9 @@ void yyerror(char const *msg){
         printf("Error type B at Line %d: %s near %s.\n", yylineno, msg, yytext);
     }
 }
+
+/* When compiling without Makefile, the below fundef is needed */
+int yywrap() 
+{ 
+   return 1; 
+}
