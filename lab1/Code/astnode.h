@@ -31,4 +31,6 @@ typedef struct node {
 
 Node *create_node(int nodetype, int lineno, char *name, char *value, int childnum, ...);
 void print_tree(Node *root, int depth);
+int str2int(char *value);
+float str2flt(char *value);
 #endif

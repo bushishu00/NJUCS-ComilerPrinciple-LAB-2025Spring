@@ -6,6 +6,7 @@
 
     #include <stdio.h>
     #include <stdlib.h>
+
     
 
     extern int errornum;
@@ -67,7 +68,7 @@ WHILE           while
 {ws}            { /* do nothing*/ }      
 {INT}           { yylval = create_node(LEX_NODE, yylineno, "INT", yytext, 0);
                   return INT;}
-{INT_oct}       { yylval = create_node(LEX_NODE, yylineno, "INT_oct", yytext, 0);
+{INT_oct}       { yylval = create_node(LEX_NODE, yylineno, "INT", yytext, 0);
                   return INT;/* recognize as INT */}
 {OCT_ERROR}     {
                     if (errorline != yylineno){
@@ -78,7 +79,7 @@ WHILE           while
                         return INT;
                     }
                 }
-{INT_hex}       { yylval = create_node(LEX_NODE, yylineno, "INT_hex", yytext, 0);
+{INT_hex}       { yylval = create_node(LEX_NODE, yylineno, "INT", yytext, 0);
                   return INT;/* recognize as INT */}
 {HEX_ERROR}     {
                     if (errorline != yylineno){
@@ -91,7 +92,7 @@ WHILE           while
                 }
 {FLOAT}         { yylval = create_node(LEX_NODE, yylineno, "FLOAT", yytext, 0);
                   return FLOAT;}
-{FLOAT_exp}     { yylval = create_node(LEX_NODE, yylineno, "FLOAT_exp", yytext, 0);
+{FLOAT_exp}     { yylval = create_node(LEX_NODE, yylineno, "FLOAT", yytext, 0);
                   return FLOAT;}/* recognize as FLOAT */  
 {FLOAT_ERROR}   {
                     if (errorline != yylineno){
