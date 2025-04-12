@@ -14,7 +14,7 @@ unsigned int hash_pjw(char *name){
 
 /**********************************************************************************
  * Scope Stack
- * 1. Create a new stack
+ * 1. init a new stack
  * 2. Push a new scope onto the stack and linked to the hash table
  * 3. Pop a scope from the stack and delete from the hash table
  * 
@@ -23,29 +23,24 @@ Push means we insert the head node of the scope into the hash table.
 So the insert function below don't mention insert the head node into the hash table.
 ***********************************************************************************/
 /* Create a Scope Stack */
-ScopeHeadStack* create_scopeheadstack(){
-    ScopeHeadStack* stack = (ScopeHeadStack*)malloc(sizeof(ScopeHeadStack));
+ScopeStack* init_scopestack(){
+    ScopeStack* stack = (ScopeStack*)malloc(sizeof(ScopeStack));
     stack->top = NULL;
     return stack;
 }
 
-/* Push a new scope onto the stack and linked to the hash table */
-void push_scope(HashTable *hashtable, ScopeHeadStack *stack, SymbolTableNode *headNode) {
+/* Push a new scope onto the stack*/
+void push_scope(ScopeStack *stack) {
     /* push scope head */
     ScopeHead *newScope = (ScopeHead*)malloc(sizeof(ScopeHead));
-    newScope->ScopeHeadNode = headNode; // set the head of the new scope
+    newScope->ScopeHeadNode = NULL; // set the head of the new scope
     newScope->nextScope = stack->top; // link to the previous top scope
     stack->top = newScope; // update the top of the stack
-
-    /* link scope head node to hash table */
-    headNode->nextBucketNode = hashtable->buckets[hash_pjw(headNode->name)]; 
-    hashtable->buckets[hash_pjw(headNode->name)] = headNode;
 }
 
 /* Pop a scope from the stack and delete from the hash table */
-void pop_scope(HashTable *hashtable, ScopeHeadStack *stack) {
+void pop_scope(HashTable *hashtable, ScopeStack *stack) {
     if (stack->top == NULL) {
-        printf("Error: No scope to pop\n");
         return;
     }
     // pop the top scope from the stack
@@ -61,6 +56,21 @@ void pop_scope(HashTable *hashtable, ScopeHeadStack *stack) {
     }
 }
 
+SymbolTableNode* get_scope_node(ScopeStack *stack, char *name){
+    // search in the scope 
+    SymbolTableNode *curScopeNode = stack->top->ScopeHeadNode;
+    SymbolTableNode *ret_scope = NULL;
+    while(curScopeNode != NULL) {
+        if (strcmp(curScopeNode->name, name) == 0) {
+            ret_scope = curScopeNode;
+            break;
+        }
+        curScopeNode = curScopeNode->nextScopeNode;
+    }
+    
+    return ret_scope;
+}
+
 /**********************************************************************************
  * Hash Table
  * 1. Create a new hash table
@@ -72,7 +82,7 @@ void pop_scope(HashTable *hashtable, ScopeHeadStack *stack) {
 **********************************************************************************/
 
 /* Create a Hash table */
-HashTable* create_hashtable(){
+HashTable* init_hashtable(){
     HashTable* table = (HashTable*)malloc(sizeof(HashTable));
     assert(table != NULL);/* table is very large, so we make sure we have enough space*/
     for(int i = 0; i < TABLESIZE; ++i) {
@@ -82,37 +92,36 @@ HashTable* create_hashtable(){
 }
 
 /* Create a new Symbol table node */
-SymbolTableNode* create_symboltable_node(Type *type, char *name, int kind, bool isdef){
+SymbolTableNode* create_symboltable_node(Type *type, char *name, int kind){
     SymbolTableNode *ret = (SymbolTableNode*)malloc(sizeof(SymbolTableNode));
     ret->type = type;
     ret->name = name;
     ret->kind = kind;
-    ret->isdef = isdef;
     ret->nextBucketNode = NULL;
     ret->nextScopeNode = NULL;
     return ret;
 }
 
 /* Insert a Symbol table node (non scope head node) into a Hash Table */
-void insert_symboltable_node(HashTable *hashtable, ScopeHeadStack *stack, SymbolTableNode *insertNode) {
-    /* if NULL, the node should be inserted by PUSH STACK */
-    assert(stack->top != NULL);
-
+void insert_symboltable_node(HashTable *hashtable, ScopeStack *stack, SymbolTableNode *insertNode) {
     /* find the previous scope node */
     SymbolTableNode *curScopeNode = stack->top->ScopeHeadNode;
-    while(curScopeNode->nextScopeNode != NULL) {
-        curScopeNode = curScopeNode->nextScopeNode;
+    SymbolTableNode **curr = &(stack->top->ScopeHeadNode);
+    while (*curr != NULL) {
+        curr = &((*curr)->nextScopeNode);
     }
-    /* table/stack connect to node */
-    hashtable->buckets[hash_pjw(insertNode->name)] = insertNode;   
-    curScopeNode->nextScopeNode = insertNode;
-    /* node connect to stack/table*/
-    insertNode->nextBucketNode = hashtable->buckets[hash_pjw(insertNode->name)];
+    *curr = insertNode;
     insertNode->nextScopeNode = NULL;
+    /* update table */
+    insertNode->nextBucketNode = hashtable->buckets[hash_pjw(insertNode->name)];
+    hashtable->buckets[hash_pjw(insertNode->name)] = insertNode;   
+    
+    // printf("Insert a symbol %s\n", insertNode->name);
 }
 
 /* look up a hash table node */
-SymbolTableNode* get_symboltable_node(HashTable *hashtable, ScopeHeadStack *stack, char *name){
+/* name should be Node Value */
+SymbolTableNode* get_symboltable_node(HashTable *hashtable, char *name){
     /* search in the bucket */
     SymbolTableNode *curBucketNode = hashtable->buckets[hash_pjw(name)];
     SymbolTableNode *ret_bucket = NULL;
@@ -123,28 +132,6 @@ SymbolTableNode* get_symboltable_node(HashTable *hashtable, ScopeHeadStack *stac
             break;
         }
         curBucketNode = curBucketNode->nextBucketNode;
-    }
-
-    if (ret_bucket == NULL) {
-        printf("Error: %s not found in the symbol table\n", name);
-        return NULL; 
-    }
-
-    /* search in the scope */
-    /* TODO: delete the code after test */
-    SymbolTableNode *curScopeNode = stack->top->ScopeHeadNode;
-    SymbolTableNode *ret_scope = NULL;
-    while(curScopeNode != NULL) {
-        if (strcmp(curScopeNode->name, name) == 0) {
-            ret_scope = curScopeNode;
-            break;
-        }
-        curScopeNode = curScopeNode->nextScopeNode;
-    }
-
-    /* these tow rets should be the same */
-    if (ret_scope != NULL && ret_bucket != NULL) {
-        assert(ret_bucket == ret_scope);
     }
 
     return ret_bucket;
@@ -163,21 +150,27 @@ struct FunctionTable {
 };
 **********************************************************************************/
 /* Create a function table , return a head ptr*/
-FunctionTable* create_functiontable(){
+FunctionTable* init_functiontable_head(){
     FunctionTable* head = (FunctionTable*)malloc(sizeof(FunctionTable));
     head->name = NULL;
     head->lineNo = 0;
+    head->type = NULL;
     head->nextFun = NULL;
     return head;
 }
 
 /* Insert(and create) a function table node into the function table (head insert)*/
-void insert_functiontable_node(FunctionTable *head, char *name, int lineNo) {
+void insert_functiontable_node(FunctionTable *head, char *name, int lineNo, bool isdef, Type *type) {
     FunctionTable *newNode = (FunctionTable*)malloc(sizeof(FunctionTable));
     newNode->name = name;
     newNode->lineNo = lineNo;
+    newNode->isdef = isdef;
+    newNode->type = type;
     newNode->nextFun = head->nextFun;
     head->nextFun = newNode;
+
+    // printf("Insert a function %s\n", name);
+
 }
 
 /* Look up a function table node in the function table */
@@ -204,7 +197,7 @@ struct StructureTable {
 };
 **********************************************************************************/
 /* Create a structure table */
-StructureTable* create_structuretable_head(){
+StructureTable* init_structuretable_head(){
     StructureTable* head = (StructureTable*)malloc(sizeof(StructureTable));
     head->structNode = NULL;
     head->nextStruct = NULL;
@@ -217,6 +210,8 @@ void insert_structuretable_node(StructureTable *head, SymbolTableNode *structNod
     newNode->structNode = structNode;
     newNode->nextStruct = head->nextStruct;
     head->nextStruct = newNode;
+
+    // printf("Insert a struct %s\n", structNode->name);
 }
 /* Look up a Struture table node in the Struture table */
 StructureTable* get_structuretable_node(StructureTable *head, char *name) {
@@ -226,6 +221,9 @@ StructureTable* get_structuretable_node(StructureTable *head, char *name) {
             return curNode;
         }
         curNode = curNode->nextStruct;
+    }
+    if (curNode == NULL) {
+        return NULL; 
     }
     return NULL;
 }

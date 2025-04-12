@@ -18,7 +18,7 @@ typedef struct FieldList_ FieldList;
 typedef struct SymbolTableNode SymbolTableNode;
 typedef struct HashTable HashTable;
 typedef struct ScopeHead ScopeHead;
-typedef struct ScopeHeadStack ScopeHeadStack;
+typedef struct ScopeStack ScopeStack;
 typedef struct FunctionTable FunctionTable;
 typedef struct StructureTable StructureTable;
 
@@ -38,7 +38,11 @@ struct Type_ {
             int size; 
         } array;
         // struct type is a linked list of fields
-        FieldList *structure; 
+        struct
+        { 
+            char *name;
+            FieldList *structures;
+        } structure;
         struct { 
             int paraNum;
             FieldList *params;
@@ -61,7 +65,6 @@ struct SymbolTableNode {
     Type *type;                      
     char *name;                     
     int kind;                       // 0 for variable, 1 for struct, 2 for function
-    bool isdef;                     // whether the variable is defined
     SymbolTableNode *nextBucketNode;  // next node in the symbol table, linked list insered at the head
     SymbolTableNode *nextScopeNode;  // next node in the same scope
 };
@@ -71,7 +74,7 @@ struct ScopeHead {
     ScopeHead *nextScope;                      // next scope in the stack
 };
 
-struct ScopeHeadStack {
+struct ScopeStack {
     ScopeHead *top;                           // top of the stack
 };
 
@@ -84,6 +87,8 @@ struct HashTable {
 struct FunctionTable {
     char *name;
     int lineNo;
+    bool isdef;
+    Type *type;
     FunctionTable *nextFun;
 };
 
@@ -97,20 +102,21 @@ struct StructureTable {
 
 unsigned int hash_pjw(char *name);
 
-ScopeHeadStack* create_scopeheadstack(void);
-void push_scope(HashTable *hashtable, ScopeHeadStack *stack, SymbolTableNode *headNode);
-void pop_scope(HashTable *hashtable, ScopeHeadStack *stack);
+ScopeStack* init_scopestack(void);
+void push_scope(ScopeStack *stack);
+void pop_scope(HashTable *hashtable, ScopeStack *stack);
+SymbolTableNode* get_scope_node(ScopeStack *stack, char *name);
 
-HashTable* create_hashtable(void);
-SymbolTableNode* create_symboltable_node(Type *type, char *name, int kind, bool isdef);
-void insert_symboltable_node(HashTable *hashtable, ScopeHeadStack *stack, SymbolTableNode *insertNode);
-SymbolTableNode* get_symboltable_node(HashTable *hashtable, ScopeHeadStack *stack, char *name);
+HashTable* init_hashtable(void);
+SymbolTableNode* create_symboltable_node(Type *type, char *name, int kind);
+void insert_symboltable_node(HashTable *hashtable, ScopeStack *stack, SymbolTableNode *insertNode);
+SymbolTableNode* get_symboltable_node(HashTable *hashtable, char *name);
 
-FunctionTable* create_functiontable(void);
-void insert_functiontable_node(FunctionTable *head, char *name, int lineNo);
+FunctionTable* init_functiontable_head(void);
+void insert_functiontable_node(FunctionTable *head, char *name, int lineNo, bool isdef, Type *type);
 FunctionTable* get_functiontable_node(FunctionTable *head, char *name);
 
-StructureTable* create_structuretable_head(void);
+StructureTable* init_structuretable_head(void);
 void insert_structuretable_node(StructureTable *head, SymbolTableNode *structNode);
 StructureTable* get_structuretable_node(StructureTable *head, char *name);
 

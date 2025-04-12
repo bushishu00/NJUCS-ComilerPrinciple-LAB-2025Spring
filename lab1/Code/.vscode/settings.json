@@ -1,0 +1,6 @@
+{
+    "files.associations": {
+        "astnode.h": "c",
+        "ctype.h": "c"
+    }
+}

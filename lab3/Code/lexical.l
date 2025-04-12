@@ -1,7 +1,7 @@
 %{
     #include "astnode.h"
     /* Attention: YYSTYPE has to be defined before include "syntax.tab.h" */
-    #define YYSTYPE astNode*
+    #define YYSTYPE Node*
     #include "syntax.tab.h"
 
     #include <stdio.h>
@@ -19,8 +19,8 @@
         yylloc.last_column = yycolumn + yyleng - 1; \ 
         yycolumn += yyleng; 
 
-    astNode *create_lexnode(int lineno, char *name, char *value){
-        astNode *ret = create_node(LEX_NODE, lineno, name, value, 0);
+    Node *create_lexnode(int lineno, char *name, char *value){
+        Node *ret = create_node(LEX_NODE, lineno, name, value, 0);
         return ret;
     }
 %}
@@ -67,7 +67,7 @@ WHILE           while
 {ws}            { /* do nothing*/ }      
 {INT}           { yylval = create_node(LEX_NODE, yylineno, "INT", yytext, 0);
                   return INT;}
-{INT_oct}       { yylval = create_node(LEX_NODE, yylineno, "INT", yytext, 0);
+{INT_oct}       { yylval = create_node(LEX_NODE, yylineno, "INT_oct", yytext, 0);
                   return INT;/* recognize as INT */}
 {OCT_ERROR}     {
                     if (errorline != yylineno){
@@ -78,7 +78,7 @@ WHILE           while
                         return INT;
                     }
                 }
-{INT_hex}       { yylval = create_node(LEX_NODE, yylineno, "INT", yytext, 0);
+{INT_hex}       { yylval = create_node(LEX_NODE, yylineno, "INT_hex", yytext, 0);
                   return INT;/* recognize as INT */}
 {HEX_ERROR}     {
                     if (errorline != yylineno){
@@ -91,7 +91,7 @@ WHILE           while
                 }
 {FLOAT}         { yylval = create_node(LEX_NODE, yylineno, "FLOAT", yytext, 0);
                   return FLOAT;}
-{FLOAT_exp}     { yylval = create_node(LEX_NODE, yylineno, "FLOAT", yytext, 0);
+{FLOAT_exp}     { yylval = create_node(LEX_NODE, yylineno, "FLOAT_exp", yytext, 0);
                   return FLOAT;}/* recognize as FLOAT */  
 {FLOAT_ERROR}   {
                     if (errorline != yylineno){
