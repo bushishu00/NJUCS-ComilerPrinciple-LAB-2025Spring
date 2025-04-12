@@ -6,7 +6,8 @@ ScopeStack *scopeStack = NULL;
 FunctionTable *functionTable = NULL;
 StructureTable *structTable = NULL;
 #define DEBUGMODE 0
-#define point printf("1\n");
+#define SHOW_PROCESS 0
+#define breakpoint printf("----------------------------\n");
 
 void debug_print(astNode* root, int debug){
     if (debug == 1){
@@ -15,13 +16,15 @@ void debug_print(astNode* root, int debug){
     return ;
 }
 
-void child_print(astNode* root){
-    for (int i=0; i<5; i++){
-        astNode *nodei = get_child(root, i);
-        if (nodei != NULL)
-            printf("%s\n", nodei->name);
-        else
-            printf("the node%d is NULL\n", i);
+void child_print(astNode* root, int debug){
+    if (debug == 1){
+        for (int i=0; i<7; i++){
+            astNode *nodei = get_child(root, i);
+            if (nodei != NULL)
+                printf("%s\n", nodei->name);
+            else
+                printf("the node%d is NULL\n", i);
+        }
     }
 }
 
@@ -35,7 +38,77 @@ void field_print(FieldList *field){
     }
 }
 
+void type_print(Type *type) {
+    if (type == NULL) {
+        printf("Type: NULL\n");
+        return;
+    }
+
+    switch (type->kind) {
+        case BASIC:
+            if (type->u.basic == 0) {
+                printf("Type: BASIC (int)\n");
+            } else if (type->u.basic == 1) {
+                printf("Type: BASIC (float)\n");
+            } else {
+                printf("Type: BASIC (unknown)\n");
+            }
+            break;
+
+        case ARRAY: {
+            printf("Type: ARRAY\n");
+            int dimension = 0;
+            Type *curType = type;
+            while (curType != NULL && curType->kind == ARRAY) {
+                printf("  Dimension %d: size = %d\n", ++dimension, curType->u.array.size);
+                curType = curType->u.array.elem;
+            }
+            printf("  Element Type:\n");
+            type_print(curType); // 打印数组的元素类型
+            break;
+        }
+
+        case STRUCTURE: {
+            printf("Type: STRUCTURE\n");
+            if (type->u.structure.name != NULL) {
+                printf("  Struct Name: %s\n", type->u.structure.name);
+            } else {
+                printf("  Anonymous Struct\n");
+            }
+            printf("  Fields:\n");
+            FieldList *field = type->u.structure.structures;
+            while (field != NULL) {
+                printf("    Field Name: %s\n", field->name);
+                printf("    Field Type:\n");
+                type_print(field->type); // 递归打印字段类型
+                field = field->nextFieldList;
+            }
+            break;
+        }
+
+        case FUNCTION: {
+            printf("Type: FUNCTION\n");
+            printf("  Return Type:\n");
+            type_print(type->u.function.returntype); // 打印返回值类型
+            printf("  Parameters (%d):\n", type->u.function.paraNum);
+            FieldList *param = type->u.function.params;
+            while (param != NULL) {
+                printf("    Parameter Name: %s\n", param->name);
+                printf("    Parameter Type:\n");
+                type_print(param->type); // 递归打印参数类型
+                param = param->nextFieldList;
+            }
+            break;
+        }
+
+        default:
+            printf("Type: UNKNOWN\n");
+            break;
+    }
+}
+
 void scope_print() {
+    printf("\nThe scope has symbols below:\n");
     if (scopeStack->top == NULL) {
         printf("Scope stack is empty.\n");
         return;
@@ -45,13 +118,14 @@ void scope_print() {
         SymbolTableNode *currentNode = scopeStack->top->ScopeHeadNode;
         int i = 1;
         while (currentNode != NULL) {
-            printf("\nSymbol: %s, Kind: %d\n", currentNode->name, currentNode->kind);
+            printf("Symbol: %s, Kind: %d, ", currentNode->name, currentNode->kind);
+            type_print(currentNode->type);
             currentNode = currentNode->nextScopeNode;
         }
     } else {
-        printf("\nNothing in current Scope\n");
+        printf("Nothing in current Scope\n");
     }
-    
+    printf("\n");
 }
 
 /* Check By myself */
@@ -69,6 +143,8 @@ void Program(astNode *root){
     scope_begin();
     ExtDefList(get_child(root, 0));
     check_undef_func();
+    if (SHOW_PROCESS == 1)
+        scope_print();
     scope_end();
 }
 
@@ -273,7 +349,12 @@ FieldList *DefList_in_struct(astNode *root){
             semantic_error(Redefined_Field, node1->lineno, nxtField->name);
         }
         /* TODO重名也连接，后续考虑删除重复声明 */
-        field->nextFieldList = nxtField;
+        /* 注意要先遍历到当前Def的最后一个，再连接 */
+        FieldList *curField = field;
+        while (curField->nextFieldList != NULL){
+            curField = curField->nextFieldList;
+        }
+        curField->nextFieldList = nxtField;
     }
     return field;
 }
@@ -302,17 +383,16 @@ FieldList *DecList_in_struct(astNode *root, Type *type){
     */
     debug_print(root, DEBUGMODE);
     astNode *node0 = get_child(root, 0);
-    astNode *node1 = get_child(root, 2);
     astNode *node2 = get_child(root, 2);
 
     FieldList *field = Dec_in_struct(node0, type);
 
-    if (node1 != NULL && node2 != NULL) {
+    if (node2 != NULL) {
         /* 注意不要写成DefList_in_struct */
-        FieldList *nxtField = DecList_in_struct(node1, type);
+        FieldList *nxtField = DecList_in_struct(node2, type);
         /* 检查重名 */
         if (check_fieldlist_redefined(field, nxtField->name)){
-            semantic_error(Redefined_Field, node1->lineno, nxtField->name);
+            semantic_error(Redefined_Field, node2->lineno, nxtField->name);
         }
         field->nextFieldList = nxtField;
     }
@@ -532,12 +612,11 @@ void Stmt(astNode *root, Type *type){
     | WHILE LP Exp RP Stmt
     */
     debug_print(root, DEBUGMODE);
-
     astNode *node0 = get_child(root, 0);
 
-    Type *INT = (Type*)malloc(sizeof(Type));
-    INT->kind = BASIC;
-    INT->u.basic = 0;
+    Type *INTtype = (Type*)malloc(sizeof(Type));
+    INTtype->kind = BASIC;
+    INTtype->u.basic = 0;
 
     if (strcmp(node0->name, "Exp")==0) { // Stmt -> Exp SEMI
         Exp(node0);
@@ -561,29 +640,30 @@ void Stmt(astNode *root, Type *type){
         astNode *node4 = get_child(root, 4);
         /* while条件语句类型判断 */
         Type *whileType = Exp(node2);
-        if (check_type_equal(whileType, INT)==FALSE) {
+        if (check_type_equal(whileType, INTtype)==FALSE) {
             semantic_error(Operand_Type_Dismatch, root->lineno, node2->value);
         }
         Stmt(node4, type);
     }
     else if (strcmp(node0->name, "IF")==0) {
-        astNode *node2 = get_child(root, 2);
-        astNode *node4 = get_child(root, 4);
+        astNode *node2 = get_child(root, 2); // Exp
+        astNode *node4 = get_child(root, 4); // IF Stmt
         astNode *node5 = get_child(root, 5); // ELSE
-
-        /* if条件语句类型判断 */
+        /* condition exp check */
         Type *ifType = Exp(node2);
-        if (check_type_equal(ifType, INT)==FALSE) {
+        if (check_type_equal(ifType, INTtype)==FALSE) {
             semantic_error(Operand_Type_Dismatch, root->lineno, node2->value);
         }
-
+        /* execute if stmt */
+        assert(node4 != NULL);
         Stmt(node4, type);
-        if (node5 != NULL) {// IF LP Exp RP Stmt
-            astNode *node6 = get_child(root, 6);
-            Stmt(node4, type);
+        /* execute else stmt */
+        if (node5 != NULL) {
+            astNode *node6 = get_child(root, 6); // ELSE Stmt
+            assert(node6 != NULL);
+            Stmt(node6, type);
         } 
     }
-   
 }
 
 /* Check By myself */
@@ -654,15 +734,16 @@ void Dec(astNode *root, Type *type){
     int check_res = check_var_struct_redefined(varField->name, varType);
     if (node1 == NULL) { // Dec -> VarDec
         /* 检查变量重定义 */
-        if (check_res != 0) {// 尽管设了很多错误类型，但只要不是0就有错
-            semantic_error(Redefined_Variable_Name, root->lineno, varField->name);
-        } else { // 没问题，插入
-            insert_symboltable_node(symbolTable, scopeStack, create_symboltable_node(varField->type, varField->name, varType));
-        }
+        if (check_res != 0) {// 没问题，直接插入
+            semantic_error(Redefined_Variable_Name, root->lineno, varField->name);  
+        } 
+        /* 即使重复，也要插入，这样可以get最近声明的变量 */
+        insert_symboltable_node(symbolTable, scopeStack, create_symboltable_node(varField->type, varField->name, varType));
     } else { // VarDec ASSIGNOP Exp
         /* 检查变量重定义 */
         if (check_res != 0) {// 尽管设了很多错误类型，但只要不是0就有错
             semantic_error(Redefined_Variable_Name, root->lineno, varField->name);
+            insert_symboltable_node(symbolTable, scopeStack, create_symboltable_node(varField->type, varField->name, varType));
         } else { // 没问题，插入
             insert_symboltable_node(symbolTable, scopeStack, create_symboltable_node(varField->type, varField->name, varType));
             /* 检查赋值错误 */
@@ -756,17 +837,47 @@ Type *Exp(astNode *root){
         {
             Type *type1 = Exp(node0);
             Type *type2 = Exp(node2);
-            if (type1 == NULL || type2 == NULL)
-                return NULL;
-            /* 尽管假设中要求int才可以逻辑运算，但是没有要求报错 */
-            else if (type1->u.basic == type2->u.basic)
-            {
-                return type1;
-            }
-            else
-            {
-                semantic_error(Operand_Type_Dismatch, root->lineno, root->value);
-                return NULL;
+            if (strcmp(node1->name, "AND")==0 || strcmp(node1->name, "OR")==0 || strcmp(node1->name, "RELOP")==0) {
+                /* 逻辑运算 */
+                Type *INTtype = (Type*)malloc(sizeof(Type));
+                INTtype->kind = BASIC;
+                INTtype->u.basic = 0;
+                if (type1 == NULL || type2 == NULL) {
+                    return INTtype;
+                }
+                else if (type1->u.basic == 1) {
+                    semantic_error(Operand_Type_Dismatch, root->lineno, node0->value);
+                    return INTtype;
+                }
+                else if (type2->u.basic == 1) {
+                    semantic_error(Operand_Type_Dismatch, root->lineno, node2->value);
+                    return INTtype;
+                }
+                else if (type1->u.basic==0 && type2->u.basic==0) {
+                    return type1;
+                }
+                else {
+                    semantic_error(Operand_Type_Dismatch, root->lineno, root->value);
+                    return INTtype;
+                }
+            } else {
+                /* 算数运算 */
+                /* 处理空 */
+                if (type1 == NULL && type2 != NULL) {
+                    return type2;
+                }
+                else if (type1 != NULL && type2 == NULL) {
+                    return type1;
+                }
+                else if (type1 == NULL && type2 == NULL) {
+                    return NULL;
+                }
+                if (type1->u.basic == type2->u.basic) {
+                    return type1;
+                } else {
+                    semantic_error(Operand_Type_Dismatch, root->lineno, root->value);
+                    return type1;
+                }
             }
         }
         else if (strcmp(node1->name, "LB")==0) // Exp -> Exp LB Exp RB
@@ -774,9 +885,11 @@ Type *Exp(astNode *root){
             Type *type1 = Exp(node0);
             Type *type2 = Exp(node2);
             bool valid_access = TRUE;
+            /* 处理空 */
             if (type1 == NULL || type2 == NULL) {
                 return NULL;
             }
+            /* 继续处理 */
             if (type1->kind != ARRAY) /* 非数组类型使用[] */
             {
                 semantic_error(Operate_Others_As_Array, root->lineno, NULL);
@@ -895,7 +1008,7 @@ Type *Exp(astNode *root){
             Type *type = func->type;
             Type *returntype = type->u.function.returntype;
             if (strcmp(node2->name, "Args")==0) // ID LP Args RP
-            {
+            {   
                 if (type->u.function.params == NULL) {   //Args是非空的
                     semantic_error(Func_Call_Parameter_Dismatch, root->lineno, node0->value);
                 } else {
@@ -929,11 +1042,13 @@ FieldList *Args(astNode *root){
     FieldList *args = (FieldList*)malloc(sizeof(FieldList));
     args->type = Exp(node0); // 可能是NULL
     args->name = NULL;// 不需要名字
+    args->nextFieldList = NULL;
 
     if (node2 != NULL) // Args -> Exp COMMA Args
     {
         args->nextFieldList = Args(node2);
     }
+
     return args;
 }
 
@@ -1128,7 +1243,15 @@ bool check_type_equal(Type *a, Type *b){
     if (a == NULL || b == NULL || a->kind != b->kind){
         return FALSE;
     }
-
+    if (SHOW_PROCESS == 1) {
+        printf("\n");
+        printf("Current A type is:\n");
+        type_print(a);
+        printf("\n");
+        printf("Current B type is:\n");
+        type_print(b);
+        printf("\n");
+    }
     switch (a->kind){
         case BASIC:{
             return a->u.basic == b->u.basic;
@@ -1207,6 +1330,7 @@ bool check_fieldlist_equal(FieldList *a, FieldList* b){
     }
     FieldList *curA = a;
     FieldList *curB = b;
+    
     while (curA != NULL && curB != NULL) {
         // 比较字段的类型是否相等
         if (check_type_equal(curA->type, curB->type) == FALSE) {
@@ -1236,7 +1360,7 @@ bool array_strong_equal(Type *a, Type *b)
 /* 假设7要求变量名与结构体的域名不重复，但此处仅考虑变量名与结构名重复的报错 */
 int check_var_struct_redefined(char *name, int curType) {// curType: 1代表是结构体名，0代表是变量名
     /* 检查变量或结构本身有没有重定义 */
-    if (DEBUGMODE == 1){
+    if (SHOW_PROCESS == 1){
         scope_print();
     }
 
@@ -1252,11 +1376,11 @@ int check_var_struct_redefined(char *name, int curType) {// curType: 1代表是�
     }
     SymbolTableNode *var = get_scope_node(scopeStack, name);
     StructureTable *structure = get_structuretable_node(structTable, name);
-    if (DEBUGMODE == 1){
+    if (SHOW_PROCESS == 1){
         printf("\n");
         printf("Checking %s \'%s\'\n", curType?"struct":"var", name);
-        printf("Search symboltable, found %s\n", var==NULL?"nothing":var->name);
-        printf("Search structtable, found %s\n", structure==NULL?"nothing":structure->structNode->name);
+        printf("Search symboltable, %sexisted \n", var==NULL?"don't":"");
+        printf("Search structtable, %sexisted \n", structure==NULL?"don't":"");
         printf("\n");
     }
     
