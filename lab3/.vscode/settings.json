@@ -2,6 +2,12 @@
     "files.associations": {
         "stdlib.h": "c",
         "type_traits": "cpp",
-        "typeinfo": "c"
+        "typeinfo": "c",
+        "astnode.h": "c",
+        "stdio.h": "c",
+        "symboltable.h": "c",
+        "stdarg.h": "c",
+        "assert.h": "c",
+        "semantic.h": "c"
     }
 }

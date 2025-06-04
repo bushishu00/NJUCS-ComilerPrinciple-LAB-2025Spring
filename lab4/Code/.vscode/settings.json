@@ -1,0 +1,14 @@
+{
+    "files.associations": {
+        "typeinfo": "c",
+        "semantic.h": "c",
+        "cmath": "c",
+        "type_traits": "c",
+        "limits": "c",
+        "astnode.h": "c",
+        "intermediate.h": "c",
+        "symboltable.h": "c",
+        "objective.h": "c"
+    },
+    "C_Cpp.default.compilerPath": "/usr/bin/gcc"
+}

@@ -1,0 +1,55 @@
+FUNCTION processGridValue : 
+PARAM v1
+PARAM v2
+PARAM v3
+t2 := v1 * v1
+t3 := v2 * v3
+t1 := t2 + t3
+v4 := t1
+t5 := v4 / #10
+t4 := t5 * #10
+IF t4 != v4 GOTO label1
+t6 := v4 / #10
+RETURN t6
+GOTO label2
+LABEL label1 : 
+t7 := v4 + #5
+RETURN t7
+LABEL label2 : 
+FUNCTION main : 
+v13 := #4
+v14 := #0
+v15 := #0
+v18 := #0
+v19 := #0
+READ t8
+v16 := t8
+LABEL label3 : 
+IF v14 >= v13 GOTO label4
+v15 := #0
+LABEL label5 : 
+IF v15 >= v13 GOTO label6
+ARG v16
+ARG v15
+ARG v14
+t9 := CALL processGridValue
+v17 := t9
+t10 := v18 + v17
+v18 := t10
+IF v17 <= #25 GOTO label7
+t11 := v19 + #1
+v19 := t11
+LABEL label7 : 
+t12 := v15 + #1
+v15 := t12
+GOTO label5
+LABEL label6 : 
+t13 := v14 + #1
+v14 := t13
+GOTO label3
+LABEL label4 : 
+WRITE v18
+t14 := #0
+WRITE v19
+t15 := #0
+RETURN #0

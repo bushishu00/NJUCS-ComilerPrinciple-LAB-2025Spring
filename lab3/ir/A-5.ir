@@ -1,0 +1,33 @@
+FUNCTION processHelper : 
+PARAM v1
+IF v1 >= #0 GOTO label1
+t1 := v1 * #2
+RETURN t1
+LABEL label1 : 
+t2 := v1 + #10
+RETURN t2
+FUNCTION recursiveWithHelperCall : 
+PARAM v5
+IF v5 > #0 GOTO label2
+RETURN #0
+GOTO label3
+LABEL label2 : 
+ARG v5
+t3 := CALL processHelper
+v6 := t3
+t5 := v5 - #2
+ARG t5
+t4 := CALL recursiveWithHelperCall
+v7 := t4
+t6 := v6 + v7
+RETURN t6
+LABEL label3 : 
+FUNCTION main : 
+READ t7
+v15 := t7
+ARG v15
+t8 := CALL recursiveWithHelperCall
+v16 := t8
+WRITE v16
+t9 := #0
+RETURN #0

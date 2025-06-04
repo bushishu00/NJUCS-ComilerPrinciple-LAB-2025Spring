@@ -1,0 +1,40 @@
+FUNCTION analyzePixel : 
+PARAM v1
+v2 := #0
+t1 := v1 + #8
+t2 := t1
+v3 := *t2
+t3 := v1
+v4 := *t3
+IF v3 <= #100 GOTO label1
+t4 := v2 + #10
+v2 := t4
+LABEL label1 : 
+IF v4 >= #50 GOTO label2
+t5 := v2 + #1
+v2 := t5
+LABEL label2 : 
+RETURN v2
+FUNCTION main : 
+DEC v16 20
+t6 := &v16 + #8
+t7 := t6
+READ t8
+*t7 := t8
+t9 := &v16 + #8
+t10 := t9 + #4
+*t10 := #100
+t11 := &v16 + #8
+t12 := t11 + #8
+*t12 := #50
+t13 := &v16
+READ t14
+*t13 := t14
+t15 := &v16 + #4
+*t15 := #80
+ARG &v16
+t16 := CALL analyzePixel
+v17 := t16
+WRITE v17
+t17 := #0
+RETURN #0

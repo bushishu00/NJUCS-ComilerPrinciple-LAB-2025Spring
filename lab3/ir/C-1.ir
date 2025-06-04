@@ -1,0 +1,74 @@
+FUNCTION calculateInnerLoopLimit : 
+PARAM v1
+PARAM v2
+t2 := v1 - v2
+t1 := t2 - #1
+v3 := t1
+RETURN v3
+FUNCTION main : 
+DEC v8 20
+v9 := #5
+v10 := #0
+v11 := #0
+LABEL label1 : 
+IF v10 >= v9 GOTO label2
+t3 := v10 * #4
+t4 := &v8 + t3
+READ t5
+*t4 := t5
+t6 := v10 + #1
+v10 := t6
+GOTO label1
+LABEL label2 : 
+v10 := #0
+t7 := v9 - #1
+v13 := t7
+LABEL label3 : 
+IF v10 >= v13 GOTO label4
+v11 := #0
+ARG v10
+ARG v9
+t8 := CALL calculateInnerLoopLimit
+v14 := t8
+LABEL label5 : 
+IF v11 >= v14 GOTO label6
+t9 := v11 * #4
+t10 := &v8 + t9
+t11 := v11 + #1
+t12 := t11 * #4
+t13 := &v8 + t12
+IF *t10 <= *t13 GOTO label7
+t14 := v11 * #4
+t15 := &v8 + t14
+v12 := *t15
+t16 := v11 * #4
+t17 := &v8 + t16
+t18 := v11 + #1
+t19 := t18 * #4
+t20 := &v8 + t19
+*t17 := *t20
+t21 := v11 + #1
+t22 := t21 * #4
+t23 := &v8 + t22
+*t23 := v12
+LABEL label7 : 
+t24 := v11 + #1
+v11 := t24
+GOTO label5
+LABEL label6 : 
+t25 := v10 + #1
+v10 := t25
+GOTO label3
+LABEL label4 : 
+v10 := #0
+LABEL label8 : 
+IF v10 >= v9 GOTO label9
+t26 := v10 * #4
+t27 := &v8 + t26
+WRITE *t27
+t28 := #0
+t29 := v10 + #1
+v10 := t29
+GOTO label8
+LABEL label9 : 
+RETURN #0

@@ -1,0 +1,124 @@
+FUNCTION processFixed1DArrayWithCheck : 
+PARAM v1
+PARAM v2
+v3 := #0
+v4 := #0
+LABEL label1 : 
+IF v4 >= #4 GOTO label2
+t1 := v4 * #4
+t2 := v1 + t1
+IF *t2 == v2 GOTO label3
+t4 := v4 * #4
+t5 := v1 + t4
+t3 := v3 + *t5
+v3 := t3
+LABEL label3 : 
+t6 := v4 + #1
+v4 := t6
+GOTO label1
+LABEL label2 : 
+RETURN v3
+FUNCTION main : 
+DEC v16 48
+DEC v17 16
+v18 := #0
+v19 := #0
+v20 := #0
+v22 := #0
+v18 := #0
+LABEL label4 : 
+IF v18 >= #4 GOTO label5
+t7 := v18 * #4
+t8 := &v17 + t7
+t10 := v18 * #3
+t9 := t10 + #1
+*t8 := t9
+t11 := v18 + #1
+v18 := t11
+GOTO label4
+LABEL label5 : 
+v18 := #0
+LABEL label6 : 
+IF v18 >= #2 GOTO label7
+v19 := #0
+LABEL label8 : 
+IF v19 >= #3 GOTO label9
+v20 := #0
+LABEL label10 : 
+IF v20 >= #2 GOTO label11
+t12 := v18 * #24
+t13 := &v16 + t12
+t14 := v19 * #8
+t15 := t13 + t14
+t16 := v20 * #4
+t17 := t15 + t16
+t20 := v18 * #100
+t21 := v19 * #10
+t19 := t20 + t21
+t18 := t19 + v20
+*t17 := t18
+t22 := v20 + #1
+v20 := t22
+GOTO label10
+LABEL label11 : 
+t23 := v19 + #1
+v19 := t23
+GOTO label8
+LABEL label9 : 
+t24 := v18 + #1
+v18 := t24
+GOTO label6
+LABEL label7 : 
+READ t25
+v23 := t25
+ARG v23
+ARG &v17
+t26 := CALL processFixed1DArrayWithCheck
+v21 := t26
+v18 := #0
+LABEL label12 : 
+IF v18 >= #2 GOTO label13
+v19 := #0
+LABEL label14 : 
+IF v19 >= #3 GOTO label15
+v20 := #0
+LABEL label16 : 
+IF v20 >= #2 GOTO label17
+t27 := v18 * #24
+t28 := &v16 + t27
+t29 := v19 * #8
+t30 := t28 + t29
+t31 := v20 * #4
+t32 := t30 + t31
+v61 := *t32
+t34 := v61 / #2
+t33 := t34 * #2
+IF t33 != v61 GOTO label18
+t35 := v22 + v61
+v22 := t35
+LABEL label18 : 
+t36 := v20 + #1
+v20 := t36
+GOTO label16
+LABEL label17 : 
+t37 := v19 + #1
+v19 := t37
+GOTO label14
+LABEL label15 : 
+t38 := v18 + #1
+v18 := t38
+GOTO label12
+LABEL label13 : 
+IF v21 <= v22 GOTO label19
+v24 := #1
+GOTO label20
+LABEL label19 : 
+v24 := #0
+LABEL label20 : 
+WRITE v21
+t39 := #0
+WRITE v22
+t40 := #0
+WRITE v24
+t41 := #0
+RETURN #0

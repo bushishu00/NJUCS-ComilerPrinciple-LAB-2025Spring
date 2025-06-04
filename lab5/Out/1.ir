@@ -1,0 +1,26 @@
+FUNCTION main :
+READ v1
+v2 := v1
+READ v3
+v22 := v1 + #1
+v5 := v22
+v24 := v1 + v3
+v16 := #0
+LABEL L1 :
+IF v16 >= v2 GOTO L3
+LABEL L2 :
+v28 := v16 + #1
+v16 := v28
+IF v2 >= v3 GOTO L5
+LABEL L4 :
+v16 := v24
+GOTO L6
+LABEL L5 :
+v29 := v3 + v5
+v2 := v29
+v24 := v29 + v3
+LABEL L6 :
+GOTO L1
+LABEL L3 :
+RETURN #0
+

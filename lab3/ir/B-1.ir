@@ -1,0 +1,78 @@
+FUNCTION calculateBase : 
+PARAM v1
+IF v1 <= #50 GOTO label1
+t1 := v1 / #2
+v2 := t1
+RETURN v2
+GOTO label2
+LABEL label1 : 
+t2 := v1 + #10
+v2 := t2
+RETURN v2
+LABEL label2 : 
+FUNCTION determineIndex : 
+PARAM v10
+PARAM v11
+t4 := v10 + v11
+t3 := t4 / #5
+v12 := t3
+IF v12 >= #0 GOTO label3
+RETURN #0
+LABEL label3 : 
+IF v12 <= #4 GOTO label4
+RETURN #4
+LABEL label4 : 
+RETURN v12
+FUNCTION main : 
+DEC v18 20
+t5 := #0 * #4
+t6 := &v18 + t5
+*t6 := #1
+t7 := #1 * #4
+t8 := &v18 + t7
+*t8 := #2
+t9 := #2 * #4
+t10 := &v18 + t9
+*t10 := #3
+t11 := #3 * #4
+t12 := &v18 + t11
+*t12 := #4
+t13 := #4 * #4
+t14 := &v18 + t13
+*t14 := #5
+READ t15
+v19 := t15
+READ t16
+v20 := t16
+ARG v19
+t17 := CALL calculateBase
+v21 := t17
+ARG v20
+ARG v21
+t18 := CALL determineIndex
+v22 := t18
+t19 := v22 * #4
+t20 := &v18 + t19
+v23 := *t20
+IF v21 <= #30 GOTO label5
+IF v20 <= #0 GOTO label5
+t21 := v22 * #4
+t22 := &v18 + t21
+*t22 := v21
+GOTO label6
+LABEL label5 : 
+t23 := v22 * #4
+t24 := &v18 + t23
+t25 := v23 * #2
+*t24 := t25
+LABEL label6 : 
+t26 := v22 * #4
+t27 := &v18 + t26
+v24 := *t27
+WRITE v22
+t28 := #0
+WRITE v23
+t29 := #0
+WRITE v24
+t30 := #0
+RETURN #0

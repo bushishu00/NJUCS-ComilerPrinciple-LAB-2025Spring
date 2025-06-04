@@ -1,0 +1,17 @@
+struct InventoryItem {
+    int id;
+    float price;
+    int x;
+    int s;
+    float id;
+    int category[20];
+};
+
+int main() {
+    struct InventoryItem book;
+    int updated;
+    book.id = 1001;
+    book.price = 45.8;
+  
+    return 0;
+}

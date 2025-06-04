@@ -1,0 +1,49 @@
+FUNCTION isDivisibleBy : 
+PARAM v1
+PARAM v2
+IF v2 > #0 GOTO label1
+RETURN #0
+LABEL label1 : 
+IF v2 != #1 GOTO label2
+RETURN #1
+LABEL label2 : 
+t1 := v1 / v2
+v3 := t1
+t2 := v3 * v2
+IF t2 != v1 GOTO label3
+RETURN #1
+GOTO label4
+LABEL label3 : 
+RETURN #0
+LABEL label4 : 
+FUNCTION isPrimeFunc : 
+PARAM v12
+v13 := #2
+IF v12 > #1 GOTO label5
+RETURN #0
+LABEL label5 : 
+t4 := v12 / #2
+t3 := t4 + #1
+v14 := t3
+LABEL label6 : 
+IF v13 >= v14 GOTO label7
+ARG v13
+ARG v12
+t5 := CALL isDivisibleBy
+IF t5 != #1 GOTO label8
+RETURN #0
+LABEL label8 : 
+t6 := v13 + #1
+v13 := t6
+GOTO label6
+LABEL label7 : 
+RETURN #1
+FUNCTION main : 
+READ t7
+v24 := t7
+ARG v24
+t8 := CALL isPrimeFunc
+v25 := t8
+WRITE v25
+t9 := #0
+RETURN #0

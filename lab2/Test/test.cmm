@@ -1,5 +1,0 @@
-int main(){
-    if (3.2 > 1.5)
-        return 0;
-    return 1;
-}

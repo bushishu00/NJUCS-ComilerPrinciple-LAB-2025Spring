@@ -6,7 +6,7 @@
     #include <stdlib.h>
 
     extern int yylineno;
-    extern Node* root;
+    extern astNode* root;
     extern int errorline;
     extern int errornum;
     void yyerror(const char *);
@@ -44,6 +44,7 @@ ExtDef:
     Specifier ExtDecList SEMI                   { $$ = create_node(SYN_NODE, @$.first_line, "ExtDef", "ExtDef", 3, $1, $2, $3); }/* int a,b,c; */
     | Specifier SEMI                            { $$ = create_node(SYN_NODE, @$.first_line, "ExtDef", "ExtDef", 2, $1, $2); }/* int; it's strange but correct anyway */
     | Specifier FunDec CompSt                   { $$ = create_node(SYN_NODE, @$.first_line, "ExtDef", "ExtDef", 3, $1, $2, $3); }/* int main(...) {...} */
+    | Specifier FunDec SEMI                     { $$ = create_node(SYN_NODE, @$.first_line, "ExtDef", "ExtDef", 3, $1, $2, $3); }/* int main(...) */
     //| error SEMI                                { errornum++; }/* double x; */
     | Specifier error SEMI                      { errornum++; }/* int a=; */
     //| error Specifier SEMI                      { errornum++; }
@@ -165,4 +166,10 @@ void yyerror(char const *msg){
         errorline = yylineno;
         printf("Error type B at Line %d: %s near %s.\n", yylineno, msg, yytext);
     }
+}
+
+/* When compiling without Makefile, the below fundef is needed */
+int yywrap() 
+{ 
+   return 1; 
 }

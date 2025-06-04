@@ -128,6 +128,40 @@ void scope_print() {
     printf("\n");
 }
 
+void print_scope_stack(ScopeStack *stack) {
+    if (stack == NULL) {
+        printf("Scope stack is empty.\n");
+        return;
+    }
+
+    ScopeHead *currentScope = stack->top;
+    int level = 0;
+    while (currentScope != NULL) {
+        printf("Scope Level: %d\n", level++);
+        SymbolTableNode *currentNode = currentScope->ScopeHeadNode;
+        while (currentNode != NULL) {
+            printf("Symbol: %s, Kind: %d\n", currentNode->name, currentNode->kind);
+            currentNode = currentNode->nextScopeNode;
+        }
+        currentScope = currentScope->nextScope;
+    }
+}
+
+void print_symbol_table(HashTable *table) {
+    if (table == NULL) {
+        printf("Symbol table is empty.\n");
+        return;
+    }
+
+    for (int i = 0; i < TABLESIZE; i++) {
+        SymbolTableNode *currentNode = table->buckets[i];
+        while (currentNode != NULL) {
+            printf("Symbol: %s, Kind: %d\n", currentNode->name, currentNode->kind);
+            currentNode = currentNode->nextBucketNode;
+        }
+    }
+}
+
 /* Check By myself */
 void Program(astNode *root){
     /*
@@ -143,9 +177,9 @@ void Program(astNode *root){
     scope_begin();
     ExtDefList(get_child(root, 0));
     check_undef_func();
-    if (SHOW_PROCESS == 1)
-        scope_print();
-    scope_end();
+
+    print_symbol_table(symbolTable);
+    //scope_end();
 }
 
 /* Check By myself */
@@ -195,7 +229,7 @@ void ExtDef(astNode *root){
             /* THIS IS REAL Declaration */
             scope_begin();// a new scope of FUNCTION begin at Formal Param
             FunDec(node1, FALSE, type);
-            scope_end();
+            //scope_end();
         }
         else
         {
@@ -204,7 +238,7 @@ void ExtDef(astNode *root){
             scope_begin();// a new scope of FUNCTION begin at Formal Param
             FunDec(node1, TRUE, type);
             CompSt(node2, type);
-            scope_end();
+            //scope_end();
         }
     }
     else {
@@ -344,10 +378,6 @@ FieldList *DefList_in_struct(astNode *root){
     FieldList *field = Def_in_struct(node0);
     if (node1 != NULL) {
         FieldList *nxtField = DefList_in_struct(node1);
-        /* 检查重名 */
-        if (check_fieldlist_redefined(field, nxtField->name)){
-            semantic_error(Redefined_Field, node1->lineno, nxtField->name);
-        }
         /* TODO重名也连接，后续考虑删除重复声明 */
         /* 注意要先遍历到当前Def的最后一个，再连接 */
         FieldList *curField = field;
@@ -356,6 +386,8 @@ FieldList *DefList_in_struct(astNode *root){
         }
         curField->nextFieldList = nxtField;
     }
+    /* 检查重名 */
+    check_fieldlist_redefined_with_lineno(field, root);
     return field;
 }
 FieldList *Def_in_struct(astNode *root){
@@ -390,7 +422,7 @@ FieldList *DecList_in_struct(astNode *root, Type *type){
     if (node2 != NULL) {
         /* 注意不要写成DefList_in_struct */
         FieldList *nxtField = DecList_in_struct(node2, type);
-        /* 检查重名 */
+        /* 检查连续声明的重名 */
         if (check_fieldlist_redefined(field, nxtField->name)){
             semantic_error(Redefined_Field, node2->lineno, nxtField->name);
         }
@@ -485,6 +517,11 @@ int FunDec(astNode *root, bool isDefined, Type *type){
      5. pre没有，cur声明：插入isDefined
      6. pre没有，cur定义：插入isDefined
     */
+
+    /*注意：
+    1. 由于OJ需要，case3不报错，需要检查声明一致性
+    2. 函数的返回值对于结构体的检查是名等价的
+    */
     char *funcName = node0->value;
     FunctionTable *preFunc = get_functiontable_node(functionTable, funcName);
     if (preFunc == NULL) { // case 5 6
@@ -505,9 +542,14 @@ int FunDec(astNode *root, bool isDefined, Type *type){
         }
     }
     else if (preFunc->isdef == 1) {// 直接报重定义就行
-        semantic_error(Redefined_Function, root->lineno, node0->value);
+        if (isDefined == 1) {// case4
+            semantic_error(Redefined_Function, root->lineno, node0->value);
+        } else {// case 3
+            if (check_type_equal(newType, preFunc->type)==FALSE) {
+                semantic_error(Conflict_Decordef_Funcion, root->lineno, node0->value);
+            } 
+        }   
     }
-
 }
 
 /* Check By myself */
@@ -624,7 +666,7 @@ void Stmt(astNode *root, Type *type){
     else if (strcmp(node0->name, "CompSt")==0) {
         scope_begin();
         CompSt(node0, type);
-        scope_end();
+        //scope_end();
     }
     else if (strcmp(node0->name, "RETURN")==0) {
         astNode *node1 = get_child(root, 1);
@@ -835,6 +877,7 @@ Type *Exp(astNode *root){
         }
         else if (strcmp(node1->name, "AND")==0 || strcmp(node1->name, "OR")==0 || strcmp(node1->name, "RELOP")==0 || strcmp(node1->name, "PLUS")==0 || strcmp(node1->name, "MINUS")==0 || strcmp(node1->name, "STAR")==0 || strcmp(node1->name, "DIV")==0)
         {
+            // TODO： 结构体无法做这里的所有运算
             Type *type1 = Exp(node0);
             Type *type2 = Exp(node2);
             if (strcmp(node1->name, "AND")==0 || strcmp(node1->name, "OR")==0 || strcmp(node1->name, "RELOP")==0) {
@@ -862,6 +905,10 @@ Type *Exp(astNode *root){
                 }
             } else {
                 /* 算数运算 */
+                if (type1->kind==STRUCTURE || type2->kind==STRUCTURE) {
+                    semantic_error(Operand_Type_Dismatch, root->lineno, root->value);
+                    return NULL;
+                }
                 /* 处理空 */
                 if (type1 == NULL && type2 != NULL) {
                     return type2;
@@ -1243,7 +1290,7 @@ bool check_type_equal(Type *a, Type *b){
     if (a == NULL || b == NULL || a->kind != b->kind){
         return FALSE;
     }
-    if (SHOW_PROCESS == 1) {
+    if (DEBUGMODE == 1) {
         printf("\n");
         printf("Current A type is:\n");
         type_print(a);
@@ -1256,22 +1303,22 @@ bool check_type_equal(Type *a, Type *b){
         case BASIC:{
             return a->u.basic == b->u.basic;
         } break;
-        case ARRAY: {//数组，弱相等（维度相等），类型已经在kind检查过
+        case ARRAY: { // 数组，弱相等（维度相等 + 最底层类型相等）
             Type *pt1 = a, *pt2 = b;
             int d1 = 0, d2 = 0;
-            while (pt1 != NULL) {
+            // 计算数组的维度
+            while (pt1 != NULL && pt1->kind == ARRAY) {
                 d1 += 1;
                 pt1 = pt1->u.array.elem;
-                if (pt1->kind != ARRAY)
-                    break;
             }
-            while (pt2 != NULL) {
+            while (pt2 != NULL && pt2->kind == ARRAY) {
                 d2 += 1;
                 pt2 = pt2->u.array.elem;
-                if (pt2->kind != ARRAY)
-                    break;
             }
-            return d1 == d2;
+            if (d1 != d2) {
+                return FALSE;
+            }
+            return check_type_equal(pt1, pt2);
         } break;
         case STRUCTURE: {//结构体
             
@@ -1346,6 +1393,14 @@ bool check_fieldlist_equal(FieldList *a, FieldList* b){
 }
 bool array_strong_equal(Type *a, Type *b)
 {
+    if (DEBUGMODE == 1) {
+        printf("\n");
+        printf("Checking array strong equal\n");
+        type_print(a);
+        printf("\n");
+        type_print(b);
+        printf("\n");
+    }
     if (a->u.array.size != b->u.array.size || a->u.array.elem->kind != b->u.array.elem->kind) {
         return FALSE;
     }
@@ -1404,6 +1459,11 @@ bool check_fieldlist_redefined(FieldList *field, char *name) {
         return FALSE;
     }
     FieldList *curField = field;
+    /*if (DEBUGMODE == 1){
+        printf("\n");
+        printf("Checking field list \'%s\' for the field name \'%s\'\n", field->name, name);
+        printf("\n");
+    }*/
     while(curField != NULL){
         if (strcmp(curField->name,name)==0) {
             return TRUE;
@@ -1411,4 +1471,23 @@ bool check_fieldlist_redefined(FieldList *field, char *name) {
         curField = curField->nextFieldList;
     }
     return FALSE;
+}
+
+void check_fieldlist_redefined_with_lineno(FieldList *field, astNode *root) {
+    if (field == NULL || root == NULL) {
+        return; 
+    }
+
+    FieldList *curField = field;
+    astNode *curNode = root;
+
+    while (curField != NULL) {
+        if (check_fieldlist_redefined(curField->nextFieldList, curField->name)) {
+            semantic_error(Redefined_Field, curNode->lineno, curField->name);
+        }
+        curField = curField->nextFieldList;
+        if (curNode != NULL) {
+            curNode = get_child(curNode, 1);
+        }
+    }
 }

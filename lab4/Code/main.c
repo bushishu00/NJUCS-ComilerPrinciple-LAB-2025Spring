@@ -1,5 +1,8 @@
-#include "astnode.h"
+
 #include "syntax.tab.h"
+#include "semantic.h"
+#include "intermediate.h"
+#include "objective.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -8,7 +11,7 @@ extern void yyrestart(FILE*);
 extern int yyparse();
 extern int yylineno;
 
-Node *root = NULL;/* the root node of Abstract Syntax Tree*/
+astNode *root = NULL;/* the root node of Abstract Syntax Tree*/
 int errornum = 0;
 int errorline = 0;/* make sure only 1 error in one line */
 
@@ -17,25 +20,26 @@ int main(int argc, char** argv){
         printf("Error: No input file!\n");
         assert(0);
     }
-    for (int i = 1; i < argc; i++){
-        FILE *f = fopen(argv[i], "r");
-        if (!f){
-            perror(argv[i]);
-            return 1;
-        }
-        /* initialize */
-        root = NULL;
-        yylineno = 1;
-        errornum = 0;
-        errorline = 0;
-        yyrestart(f);
-        yyparse();
-        fclose(f);
-        if (errornum == 0){
-            print_tree(root, 0);
-        }
-        /* finish a file */
-        //printf("Parse done!\n\n");
+
+    FILE *f = fopen(argv[1], "r");
+    if (!f){
+        perror(argv[1]);
+        return 1;
     }
+    FILE *output = fopen(argv[2], "wt+");
+    /* initialize */
+    root = NULL;
+    yylineno = 1;
+    errornum = 0;
+    errorline = 0;
+    yyrestart(f);
+    yyparse();
+    fclose(f);
+    if (errornum == 0){
+        Program(root);
+        translate_Program(root, output);
+        generate_object_code(output);
+    }
+    fclose(output);
     return 0;
 }

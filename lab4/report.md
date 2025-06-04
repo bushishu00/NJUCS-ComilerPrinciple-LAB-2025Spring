@@ -1,4 +1,4 @@
-## Lab1 实验报告
+## Lab4 实验报告
 
 ### 学生信息
 
@@ -6,90 +6,79 @@
 
 ### 实验环境和编译方法
 
-实验环境与OJ要求相同，即
+实验环境与OJ要求相同，使用makefile编译即可。
+若目录结构为
+├── Assembly
+│   ├── fib.s
+│   ├── ...
+├── Code
+│   ├── Makefile
+│   ├── ...
+├── README
+├── Test
+│   ├── fib.cmm
+│   ├── ...
+├── parser
+├── report.md
 
-- Ubuntu 20.04 64bit
-- GCC 7.5.0
-- Flex 2.6.4
-- Bison 3.6.1
-
-使用makefile编译即可。
-
-使用命令编译方法如下：
-
-在目录`李子沐_221180029/Code/`下，输入
-
+可以通过运行下面的命令进行测试：
+```shell
+./parser ./Test/fib.cmm ./Assembly/fib.s
+spim -file ./Assembly/fib.s
 ```
-flex lexical.l
-bison -d syntax.y
-gcc main.c astnode.c syntax.tab.c -ldl -o parser
-```
 
-### 实现功能
+### 实现功能和细节
 
-完成实验要求的必做和选做部分，即：
+完成实验要求（本节没有选做），可以根据前面的中间代码结果，生成MIPS目标汇编指令。
 
-1. 使用flex和bison完成对C--的词法分析和语法分析
-2. 输入一个.cmm文件，若无错误，输出要求格式的语法树；若有错误，输出错误类型与行号
-3. 输入INT型数据支持八进制，十六进制输入，FLOAT类型数据支持指数形式输入，并处理为十进制数/标准浮点数输出。
-4. 可以识别并跳过行注释`//`和块注释`/*...*/`
-
->注：同一行最多处理一个错误。代码中定义全局的errorline，与当前的yylineno对比判断多的错误是否输出。
-
-在识别错误类型（Type A或Type B）外，额外实现了一些的错误类型：
-
-1. 词法错误：通过定义错误的整型和浮点型词法单元，可以检测错误的整型、浮点型输入
->3.20更新，删除了十进制整型错误的词法单元，例如0main将识别为错误的ID而非错误的整型。
-2. 词法错误：参考实验指导，可以检测不在定义中的字符
-3. 语法错误：参考实验指导，实现了三个最基本且粗暴的语法错误检测和恢复
-4. 语法错误：面向测试样例识别了一些基本的语法错误，例如`2.cmm`中的`a[2,5]`
-5. 语法错误：根据语法理解，增加测试了19条error产生式，过犹不及！最终文法中保留了8条含error产生式，可以识别基本语法错误。
-6. 被注释的error产生式仍然保留在提交的代码中，其主要思想是替换可能出错的词法单元，例如含有SEMI的产生式，都补充一条XXX error来补全分号。然而效果并不好！
-
->注：测试文件全部来自实验指导的样例
-
-### 实验细节细节
-
-实现步骤主要参考实验指导，关键代码与问题如下。
-
-#### 多叉树
-
-节点定义如下，包含当前词法/语法单元所在行号`lineno`等信息。
-为了方便操作，这里定义子节点数量最大为`MAX_CHILDREN_NUM`，未来若有动态分配的需求再修改。
-
-测试遇到的bug：要求产生式生成空串时不输出，由于我在语法分析中为空串分配了语法单元，因此直接打印节点仍然会输出对应的非终结符。通过增加`nodetype`成员，通过`nodetype == SYN_NODE && childnum == 0`判断产生空串。
-
->3.19更新：重写了多叉树，仅保留了`create_node`和`print_tree`接口，根据应用场景，删除了parent成员。
-
+新的数据结构：Register就是代表每个寄存器（实现起来类似ICS的PA），VarOffset本质是由所有变量组成的链表，其每个节点代表了一个变量，name代表变量名，offset代表相对偏移（用于寻址），regNo代表被存储的寄存器编号。
 ```C
-typedef struct node {
-    int lineno;
-    /* make sure that name is less than 32 */                             
-    char name[32];                          /* e.g. TYPE */
-    /* Attention: the INT and FLOAT is stored as a char array (string) */
-    char value[32];                         /* e.g. int */
-    struct node* parent;                    /* only one parent */
-    struct node* childs[MAX_CHILDREN_NUM];  
-    int childnum;                           
-    int nodetype;
-} Node;
+struct Register {
+    char *name;
+    bool used;
+    VarOffset *var;
+};
+
+struct VarOffset {
+    char name[32];
+    int regNo;
+    int offset;
+    VarOffset *next;
+};
 ```
+新的函数：
+- `get_reg`：将当前操作数载入到一个合适的寄存器中，对于不同的类型`#1`, `x`, `*x`, `&x`需要考虑不同的指令，例如对于立即数使用`li`，对于访问指针需要先载入地址，然后用寻址，对应两次`lw`.
+由于采用朴素寄存器分配，因此只需要遍历即可，例如
+```C
+for (int i = 8; i < 16; i++) {
+    if (regs[i].used == 0) {
+        regs[i].used = 1;
+        regs[i].var = NULL;
+        fprintf(file, "\tli %s, %d\n", regs[i].name, op->value);
+        return i;
+    }
+}
+```
+- `save2mem`：将当前reg的内容存储到内存中
+- `get_varoffset`和`update_varoffset`：获取当前操作数（变量）的偏移量，更新全局维护的变量（偏移量）链表
+以及还有一些简单的功能函数，例如`init_all_regs`和`deactivate_temp_regs`初始化所有寄存器和重置所有临时寄存器（t0-t8）
 
-#### 添加多个子节点
-
-利用`<stdarg.h>`的可变参数，实现了`create_node`函数，方便产生式使用。
-
-#### 块注释忽略
-
-通过input和while实现块注释忽略，可以识别无效嵌套与EOF，报错仅报错注释的第一行。
-#### yyerror调用(3.20更新)
-
-语法错误在识别到error产生式时会自动调用`yyerror()`，无需在动作中显式调用`yyerror()`函数，作者之前在这里重复报了很多错。
+注意记得把lab3的打印中间代码注释掉
 
 ### 总结
 
-语法报错一直存在问题，卡了好几天发现是error产生式的动作中显式调用了`yyerror()`多报了许多错误，修改完立马通过所有测试样例与额外的测试用例，完结撒花~
+5月4号写完lab3之后几乎一个月没有碰过`编译原理`，在这一个月里去香港申请了PhD，昨天拿到了梦导的offer，花了两天天时间简单的实现了lab4目标代码生成。
 
-苯人编程能力较差，上一次独立写代码还是在大一上的二层次程序设计课。构建多叉树的过程遇到了许多弱智问题，例如字符数组要用`strcpy()`赋值，总之最后还是磕磕绊绊地完成了实验！
+回顾前3次实验，自己一个人做虽然费时间，不过确确实实提高了我的编程水平。当初选这门课的时候，是因为在做一些AI编译器的项目，但是传统的编译架构和AI编译差别比较大哈哈哈（
 
-实验过程与想象中不太相同，我以为要手写DFA和LALR分析器，但是在实验指导的帮助下整体体验很棒（比电子的实验课强多了），感谢助教！感谢老师！
+因为拿到了offer（本身我也是跨专业选），所以后续lab5和考试就60分万岁啦，希望后续有空之后能尝试图染色，窥孔优化等更高级的Compilation-level optimization。
+
+感谢助教学长们的帮助！
+
+
+
+
+
+
+
+

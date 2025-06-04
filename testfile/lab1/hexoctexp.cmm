@@ -1,8 +1,0 @@
-int main(){
-    int i = 0x66;
-    int s = 00;
-    int a = 0x000;
-    int b = 065;
-    float d = 1.06e-1;
-    return 0;
-}
